@@ -143,21 +143,44 @@ export function AmountDemo({ width }: { width: number }) {
   );
 }
 
-/** Typing into a field: cursorIndex makes a typed digit insert instead of renumbering the places. */
+/** Where `digitsBefore` digits have passed in `formatted` — the caret's place once commas are added. */
+function caretInFormatted(formatted: string, digitsBefore: number): number {
+  let seen = 0;
+  for (let i = 0; i < formatted.length; i++) {
+    if (seen === digitsBefore) return i;
+    if (/\d/.test(formatted[i]!)) seen++;
+  }
+  return formatted.length;
+}
+
+/**
+ * Typing into a field: the field holds bare digits, the display regroups them with
+ * commas on every keystroke, and cursorIndex keeps the morph at the caret — so a
+ * typed or deleted digit slides in or out where you edited, and the commas move.
+ */
 export function TypingDemo() {
-  const [value, setValue] = useState("1,250");
+  const [digits, setDigits] = useState("1250");
   const [caret, setCaret] = useState<number>();
+  const display = `$${formatAmount(digits || "0")}`;
   return (
-    <Section title="Typing" videos="cursorIndex" note="Edit the field: the morph follows your caret, so an inserted digit slides in where you typed it.">
+    <Section
+      title="Typing"
+      videos="cursorIndex"
+      note="Insert or delete digits anywhere: commas regroup, and the change morphs at your caret."
+    >
       <TextInput
-        value={value}
-        onChangeText={setValue}
+        value={digits}
+        onChangeText={(text) => setDigits(text.replace(/\D/g, "").replace(/^0+(?=\d)/, ""))}
         onSelectionChange={(e) => setCaret(e.nativeEvent.selection.end)}
-        keyboardType="numbers-and-punctuation"
+        keyboardType="number-pad"
         style={styles.input}
       />
-      <TextMorph style={styles.typed} cursorIndex={caret} containerStyle={{ marginTop: 12 }}>
-        {`$${value || "0"}`}
+      <TextMorph
+        style={styles.typed}
+        cursorIndex={caret === undefined ? undefined : caretInFormatted(display, caret)}
+        containerStyle={{ marginTop: 12 }}
+      >
+        {display}
       </TextMorph>
     </Section>
   );
