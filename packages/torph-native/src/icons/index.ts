@@ -1,7 +1,7 @@
 // Animated icons. Requires react-native-svg.
 export { IconMorph } from "./IconMorph";
 export type { IconMorphProps } from "./IconMorph";
-export { circlePath, linePath, rectPath, toShapes, pairShapes, blendShapes, flattenPath } from "./morph";
+export { blendShapes, circlePath, flattenPath, linePath, pairShapes, rectPath, strokeOpacity, toShapes, visibleShapes } from "./morph";
 export type { Shape } from "./morph";
 export {
   CheckCircle,

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { View, type StyleProp, type ViewStyle } from "react-native";
 import Animated, {
   Easing,
@@ -6,10 +6,11 @@ import Animated, {
   useSharedValue,
   withSpring,
   withTiming,
+  type SharedValue,
   type WithSpringConfig,
 } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
-import { blendShapes, pairShapes, toShapes, type Shape } from "./morph";
+import { pairShapes, strokeOpacity, toShapes, visibleShapes, type Shape } from "./morph";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -28,7 +29,7 @@ export interface IconMorphProps {
   strokeWidth?: number;
   /** Fill the shapes instead of stroking them (for solid icon sets). */
   filled?: boolean;
-  /** Points per subpath. Higher is smoother on big icons. Default 40. */
+  /** Points per stroke. Higher is smoother on big icons. Default 40. */
   samples?: number;
   /** A spring (default) or a fixed duration in ms. */
   spring?: WithSpringConfig;
@@ -36,12 +37,14 @@ export interface IconMorphProps {
   style?: StyleProp<ViewStyle>;
 }
 
-const DEFAULT_SPRING: WithSpringConfig = { damping: 20, stiffness: 210, mass: 0.9 };
+// Critically damped: a morph that overshoots draws strokes past their target shape.
+const DEFAULT_SPRING: WithSpringConfig = { damping: 26, stiffness: 220, mass: 1 };
 
 /**
  * Morphs any icon into any other: every stroke is resampled to the same number of
- * points, paired with the nearest stroke of the next icon, and blended on the UI
- * thread. Strokes without a partner grow from, or shrink into, their own centre.
+ * points, paired with the stroke of the next icon it is shaped most like, and blended
+ * on the UI thread. Strokes without a partner shrink and fade out (or grow and fade
+ * in) about their own centre.
  */
 export function IconMorph({
   d,
@@ -63,19 +66,23 @@ export function IconMorph({
   const to = useSharedValue<Shape[]>(target);
   const t = useSharedValue(1);
   const shown = useRef({ from: target, to: target });
+  const [count, setCount] = useState(target.length);
   const first = useRef(true);
 
-  useEffect(() => {
+  // A layout effect, so the stroke count and the shared values change in the same frame.
+  useLayoutEffect(() => {
     if (first.current) {
       first.current = false;
       return;
     }
     // Pair against what is on screen now, so an interrupted morph carries on.
-    const current = blendShapes(shown.current.from, shown.current.to, Math.min(1, t.value));
+    const progress = Math.min(1, Math.max(0, t.value));
+    const current = visibleShapes(shown.current.from, shown.current.to, progress);
     const paired = pairShapes(current, target);
     shown.current = paired;
     from.value = paired.from;
     to.value = paired.to;
+    setCount(paired.to.length);
     t.value = 0;
     t.value =
       duration !== undefined
@@ -84,25 +91,7 @@ export function IconMorph({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target]);
 
-  const animatedProps = useAnimatedProps(() => {
-    const a = from.value;
-    const b = to.value;
-    const p = t.value;
-    let path = "";
-    for (let s = 0; s < b.length; s++) {
-      const tp = b[s]!.points;
-      const fp = a[s] ? a[s]!.points : tp;
-      for (let k = 0; k < tp.length; k += 2) {
-        const x = fp[k]! + (tp[k]! - fp[k]!) * p;
-        const y = fp[k + 1]! + (tp[k + 1]! - fp[k + 1]!) * p;
-        path += (k === 0 ? "M" : "L") + Math.round(x * 100) / 100 + " " + Math.round(y * 100) / 100;
-      }
-      const closed = p < 0.5 ? (a[s] ? a[s]!.closed : b[s]!.closed) : b[s]!.closed;
-      if (closed) path += "Z";
-    }
-    return { d: path };
-  });
-
+  // Faded-out ghosts stay mounted (invisible) until the next morph re-pairs without them.
   return (
     <View
       style={[{ width: size, height: size }, style]}
@@ -110,15 +99,65 @@ export function IconMorph({
       accessibilityElementsHidden
     >
       <Svg width={size} height={size} viewBox={`0 0 ${viewBox} ${viewBox}`}>
-        <AnimatedPath
-          animatedProps={animatedProps}
-          fill={filled ? color : "none"}
-          stroke={filled ? "none" : color}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
+        {Array.from({ length: count }, (_, i) => (
+          <MorphStroke
+            key={i}
+            index={i}
+            from={from}
+            to={to}
+            t={t}
+            color={color}
+            strokeWidth={strokeWidth}
+            filled={filled}
+          />
+        ))}
       </Svg>
     </View>
+  );
+}
+
+function MorphStroke({
+  index,
+  from,
+  to,
+  t,
+  color,
+  strokeWidth,
+  filled,
+}: {
+  index: number;
+  from: SharedValue<Shape[]>;
+  to: SharedValue<Shape[]>;
+  t: SharedValue<number>;
+  color: string;
+  strokeWidth: number;
+  filled: boolean;
+}) {
+  const animatedProps = useAnimatedProps(() => {
+    const b = to.value[index];
+    if (!b) return { d: "M0 0", strokeOpacity: 0, fillOpacity: 0 };
+    const a = from.value[index];
+    const p = t.value;
+    const tp = b.points;
+    const fp = a ? a.points : tp;
+    let path = "";
+    for (let k = 0; k < tp.length; k += 2) {
+      const x = fp[k]! + (tp[k]! - fp[k]!) * p;
+      const y = fp[k + 1]! + (tp[k + 1]! - fp[k + 1]!) * p;
+      path += (k === 0 ? "M" : "L") + Math.round(x * 100) / 100 + " " + Math.round(y * 100) / 100;
+    }
+    const opacity = strokeOpacity(a, b, p);
+    return { d: path, strokeOpacity: opacity, fillOpacity: opacity };
+  });
+
+  return (
+    <AnimatedPath
+      animatedProps={animatedProps}
+      fill={filled ? color : "none"}
+      stroke={filled ? "none" : color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   );
 }

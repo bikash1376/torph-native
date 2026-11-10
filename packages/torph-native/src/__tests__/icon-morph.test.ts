@@ -6,7 +6,9 @@ import {
   pairShapes,
   rectPath,
   resampleShape,
+  strokeOpacity,
   toShapes,
+  visibleShapes,
 } from "../icons/morph";
 
 describe("flattenPath", () => {
@@ -80,7 +82,7 @@ describe("resampleShape", () => {
     expect(out).toEqual([0, 0, 5, 0, 10, 0]);
   });
 
-  it("does not repeat the start of a closed loop", () => {
+  it("ends a closed loop on its start, so no Z is needed", () => {
     const out = resampleShape(
       [
         [0, 0],
@@ -89,9 +91,9 @@ describe("resampleShape", () => {
         [0, 4],
       ],
       true,
-      4,
+      5,
     );
-    expect(out).toEqual([0, 0, 4, 0, 4, 4, 0, 4]);
+    expect(out).toEqual([0, 0, 4, 0, 4, 4, 0, 4, 0, 0]);
   });
 
   it("collapses a zero-length path to a dot", () => {
@@ -120,6 +122,37 @@ describe("pairShapes", () => {
     const { from, to } = pairShapes(menu, close);
     expect(blendShapes(from, to, 1).map((s) => s.points)).toEqual(to.map((s) => s.points));
     expect(blendShapes(from, to, 0).map((s) => s.points)).toEqual(from.map((s) => s.points));
+  });
+
+  it("marks unpartnered strokes as ghosts and fades them fully (no leftover dots)", () => {
+    const { from, to } = pairShapes(menu, close);
+    const out = to.findIndex((s) => s.ghost === "out");
+    expect(out).toBeGreaterThanOrEqual(0);
+    expect(strokeOpacity(from[out], to[out], 0)).toBe(1);
+    expect(strokeOpacity(from[out], to[out], 1)).toBe(0);
+    // Gone well before it has shrunk to a point.
+    expect(strokeOpacity(from[out], to[out], 0.5)).toBe(0);
+
+    const back = pairShapes(close, menu);
+    const grow = back.from.findIndex((s) => s.ghost === "in");
+    expect(strokeOpacity(back.from[grow], back.to[grow], 0)).toBe(0);
+    expect(strokeOpacity(back.from[grow], back.to[grow], 1)).toBe(1);
+  });
+
+  it("drops faded ghosts from what an interrupting morph starts from", () => {
+    const { from, to } = pairShapes(menu, close);
+    expect(visibleShapes(from, to, 1)).toHaveLength(2);
+    expect(visibleShapes(from, to, 0)).toHaveLength(3);
+  });
+
+  it("pairs strokes by shape, not just by centre (arrow shaft stays horizontal)", () => {
+    const arrow = toShapes(["M5 12h14", "M13 6l6 6-6 6"], 16);
+    const plus = toShapes(["M12 5v14", "M5 12h14"], 16);
+    const { from, to } = pairShapes(arrow, plus);
+    const shaft = from.findIndex((s) => s.points.every((v, k) => k % 2 === 0 || v === 12));
+    const target = to[shaft]!;
+    // Every y of the shaft's target is 12: it became the horizontal bar.
+    expect(target.points.filter((_, k) => k % 2 === 1).every((y) => Math.abs(y - 12) < 1e-9)).toBe(true);
   });
 
   it("reverses an open stroke when that is the shorter way", () => {

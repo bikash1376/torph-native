@@ -224,9 +224,10 @@ Give it SVG path data (one `d` string or one per `<path>`) from any icon set: Lu
 
 1. Every path is parsed (all SVG commands, including arcs) and flattened.
 2. Each stroke is resampled to the same number of points.
-3. Each stroke of the old icon is paired with the nearest stroke of the new one.
-4. Strokes without a partner grow out of, or shrink into, their own centre.
-5. The blend runs on the UI thread.
+3. Strokes are paired by shape: each pairing tries the stroke forwards, backwards and (for closed loops) from every starting point, and the set of pairings that moves the least overall wins. This is exact for icons with up to 7 strokes.
+4. Strokes without a partner shrink into, or grow out of, their own centre while fading, so they are gone before they could collapse into a stray dot.
+5. Closed shapes repeat their first point at the end instead of using `Z`, so they never snap shut halfway.
+6. Each stroke is its own path, blended on the UI thread with its own opacity.
 
 Icons drawn with `<circle>`, `<rect>` or `<line>` convert to paths with `circlePath`, `rectPath` and `linePath`.
 

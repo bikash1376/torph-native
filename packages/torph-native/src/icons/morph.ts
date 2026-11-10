@@ -2,7 +2,12 @@
 // subpaths so they can be blended point for point. Pure and dependency-free: the
 // per-frame blend in IconMorph is just arithmetic on what this produces.
 
-export type Shape = { points: number[]; closed: boolean };
+/**
+ * One stroke as a flat [x0, y0, x1, y1, …] list. A closed stroke repeats its first
+ * point at the end, so it needs no "Z" — and never snaps shut mid-morph.
+ * `ghost` marks a collapsed stand-in for a stroke the other icon doesn't have.
+ */
+export type Shape = { points: number[]; closed: boolean; ghost?: "in" | "out" };
 
 type Pt = [number, number];
 
@@ -257,7 +262,7 @@ export function flattenPath(d: string): { points: Pt[]; closed: boolean }[] {
 
 // ─── Resampling ───────────────────────────────────────────────────────────────
 
-/** `n` points evenly spaced by length along the polyline (around the loop if closed). */
+/** `n` points evenly spaced by length along the polyline (around the loop, back to the start, if closed). */
 export function resampleShape(pts: Pt[], closed: boolean, n: number): number[] {
   const ring = closed && pts.length > 1 ? [...pts, pts[0]!] : pts;
   const lengths = [0];
@@ -272,8 +277,8 @@ export function resampleShape(pts: Pt[], closed: boolean, n: number): number[] {
     for (let k = 0; k < n; k++) out.push(ring[0]![0], ring[0]![1]);
     return out;
   }
-  // A closed loop spaces n points over its length without repeating the start.
-  const divisions = closed ? n : n - 1;
+  // Closed loops end on their start point, so the seam is drawn without a "Z".
+  const divisions = n - 1;
   let seg = 1;
   for (let k = 0; k < n; k++) {
     const target = (total * k) / divisions;
@@ -313,10 +318,11 @@ function centroid(points: number[]): Pt {
   return [x / n, y / n];
 }
 
-function collapsed(at: Pt, n: number, closed: boolean): Shape {
+/** A stroke squeezed to one point: where an unpartnered stroke grows from or shrinks to. */
+function collapsed(at: Pt, n: number, closed: boolean, ghost: "in" | "out"): Shape {
   const points: number[] = [];
   for (let k = 0; k < n; k++) points.push(at[0], at[1]);
-  return { points, closed };
+  return { points, closed, ghost };
 }
 
 function distance(a: number[], b: number[]): number {
@@ -334,28 +340,31 @@ function reversed(points: number[]): number[] {
   return out;
 }
 
-function rotated(points: number[], by: number): number[] {
-  const n = points.length / 2;
+/**
+ * Rotates a loop's starting point. A closed shape stores its start again at the end,
+ * so the unique points rotate and the seam is re-appended.
+ */
+function rotated(points: number[], by: number, closed: boolean): number[] {
+  const n = points.length / 2 - (closed ? 1 : 0);
   const out: number[] = [];
   for (let k = 0; k < n; k++) {
     const j = ((k + by) % n) * 2;
     out.push(points[j]!, points[j + 1]!);
   }
+  if (closed) out.push(out[0]!, out[1]!);
   return out;
 }
 
-/** Re-orders `to` so its points travel the shortest way from `from`'s. */
-function align(from: Shape, to: Shape): Shape {
+/** Re-orders `to` so its points travel the shortest way from `from`'s, and says how far that is. */
+function align(from: Shape, to: Shape): { shape: Shape; cost: number } {
   let best = to.points;
   let bestDist = distance(from.points, best);
-  const candidates: number[][] = [];
+  const candidates: number[][] = [reversed(to.points)];
   if (to.closed && from.closed) {
-    const n = to.points.length / 2;
+    const n = to.points.length / 2 - 1;
     for (const dir of [to.points, reversed(to.points)]) {
-      for (let by = 0; by < n; by++) candidates.push(rotated(dir, by));
+      for (let by = 1; by < n; by++) candidates.push(rotated(dir, by, true));
     }
-  } else {
-    candidates.push(reversed(to.points));
   }
   for (const c of candidates) {
     const d = distance(from.points, c);
@@ -364,54 +373,103 @@ function align(from: Shape, to: Shape): Shape {
       best = c;
     }
   }
-  return { points: best, closed: to.closed };
+  return { shape: { points: best, closed: to.closed }, cost: bestDist };
+}
+
+/** Cheapest one-to-one matching of the smaller side into the larger. Exact up to 7 strokes. */
+function assign(cost: number[][], rows: number, cols: number): [number, number][] {
+  const transpose = rows > cols;
+  const small = transpose ? cols : rows;
+  const large = transpose ? rows : cols;
+  const at = (i: number, j: number) => (transpose ? cost[j]![i]! : cost[i]![j]!);
+
+  if (small <= 7) {
+    let best: number[] = [];
+    let bestCost = Infinity;
+    const used = new Array<boolean>(large).fill(false);
+    const pick: number[] = [];
+    const search = (i: number, sum: number) => {
+      if (sum >= bestCost) return;
+      if (i === small) {
+        bestCost = sum;
+        best = [...pick];
+        return;
+      }
+      for (let j = 0; j < large; j++) {
+        if (used[j]) continue;
+        used[j] = true;
+        pick.push(j);
+        search(i + 1, sum + at(i, j));
+        pick.pop();
+        used[j] = false;
+      }
+    };
+    search(0, 0);
+    return best.map((j, i) => (transpose ? [j, i] : [i, j]));
+  }
+
+  // Larger icons: greedy by cost is close enough and stays fast.
+  const all: [number, number, number][] = [];
+  for (let i = 0; i < rows; i++) for (let j = 0; j < cols; j++) all.push([cost[i]![j]!, i, j]);
+  all.sort((a, b) => a[0] - b[0]);
+  const usedR = new Set<number>();
+  const usedC = new Set<number>();
+  const pairs: [number, number][] = [];
+  for (const [, i, j] of all) {
+    if (usedR.has(i) || usedC.has(j)) continue;
+    usedR.add(i);
+    usedC.add(j);
+    pairs.push([i, j]);
+  }
+  return pairs;
 }
 
 /**
- * Pairs two icons' subpaths by nearest centre, so each stroke turns into the stroke
- * nearest it. A stroke with no partner grows out of (or shrinks into) its own centre.
+ * Pairs two icons' strokes so the total distance travelled is smallest — each stroke
+ * turns into the stroke whose shape it is nearest, not merely whose centre is. A
+ * stroke with no partner grows from (or shrinks into) its own centre and is marked
+ * as a ghost, so the renderer fades it rather than leaving a dot behind.
  */
 export function pairShapes(from: Shape[], to: Shape[]): { from: Shape[]; to: Shape[] } {
   const n = from[0]?.points.length ?? to[0]?.points.length ?? 0;
   const samples = n / 2;
-  const fromC = from.map((s) => centroid(s.points));
-  const toC = to.map((s) => centroid(s.points));
-  const pairs: [number, number][] = [];
-  const usedF = new Set<number>();
-  const usedT = new Set<number>();
-  const all: [number, number, number][] = [];
-  from.forEach((_, i) =>
-    to.forEach((_, j) => {
-      all.push([Math.hypot(fromC[i]![0] - toC[j]![0], fromC[i]![1] - toC[j]![1]), i, j]);
-    }),
-  );
-  all.sort((a, b) => a[0] - b[0]);
-  for (const [, i, j] of all) {
-    if (usedF.has(i) || usedT.has(j)) continue;
-    usedF.add(i);
-    usedT.add(j);
-    pairs.push([i, j]);
-  }
+  const aligned = from.map((f) => to.map((t) => align(f, t)));
+  const cost = aligned.map((row) => row.map((a) => a.cost));
+  const pairs = from.length && to.length ? assign(cost, from.length, to.length) : [];
+  const usedF = new Set(pairs.map((p) => p[0]));
+  const usedT = new Set(pairs.map((p) => p[1]));
 
   const outFrom: Shape[] = [];
   const outTo: Shape[] = [];
   // Keep the target's order, so the drawn result stacks the way the new icon does.
   pairs.sort((a, b) => a[1] - b[1]);
   for (const [i, j] of pairs) {
-    outFrom.push(from[i]!);
-    outTo.push(align(from[i]!, to[j]!));
+    outFrom.push({ points: from[i]!.points, closed: from[i]!.closed });
+    outTo.push(aligned[i]![j]!.shape);
   }
   to.forEach((s, j) => {
     if (usedT.has(j)) return;
-    outFrom.push(collapsed(toC[j]!, samples, s.closed));
-    outTo.push(s);
+    outFrom.push(collapsed(centroid(s.points), samples, s.closed, "in"));
+    outTo.push({ points: s.points, closed: s.closed });
   });
   from.forEach((s, i) => {
     if (usedF.has(i)) return;
-    outFrom.push(s);
-    outTo.push(collapsed(fromC[i]!, samples, s.closed));
+    outFrom.push({ points: s.points, closed: s.closed });
+    outTo.push(collapsed(centroid(s.points), samples, s.closed, "out"));
   });
   return { from: outFrom, to: outTo };
+}
+
+/**
+ * How visible paired stroke `i` is at progress `t`. A ghost growing in fades up over
+ * the last part of the morph; one shrinking out fades over the first part — so it is
+ * gone well before it could collapse into a dot.
+ */
+export function strokeOpacity(from: Shape | undefined, to: Shape | undefined, t: number): number {
+  "worklet";
+  if (from && from.ghost === "in") return Math.min(1, Math.max(0, (t - 0.35) / 0.45));
+  if (to && to.ghost === "out") return Math.min(1, Math.max(0, 1 - t / 0.45));
+  return 1;
 }
 
 /** Point-wise blend of two paired shape lists. */
@@ -422,8 +480,21 @@ export function blendShapes(from: Shape[], to: Shape[], t: number): Shape[] {
       const a = source.points[k] ?? v;
       return a + (v - a) * t;
     });
-    return { points, closed: t < 0.5 ? source.closed : target.closed };
+    return { points, closed: target.closed };
   });
+}
+
+/**
+ * What is on screen at progress `t`, minus strokes that are faded out — the starting
+ * point for a morph that interrupts this one. Ghosts never carry into the next pairing.
+ */
+export function visibleShapes(from: Shape[], to: Shape[], t: number): Shape[] {
+  const out: Shape[] = [];
+  const blended = blendShapes(from, to, t);
+  blended.forEach((shape, i) => {
+    if (strokeOpacity(from[i], to[i], t) >= 0.5) out.push(shape);
+  });
+  return out;
 }
 
 // ─── Shape helpers for icons drawn with <circle>, <rect>, <line> ─────────────
