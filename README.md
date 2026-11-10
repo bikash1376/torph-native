@@ -4,10 +4,18 @@ Morphing UI components for React Native, built on [Reanimated](https://docs.swma
 
 Text that morphs letter by letter, numbers that roll digit by digit, icons that redraw themselves into other icons, buttons that grow into trays, charts that reshape between ranges, and lists that glide into their new order. Every animation runs on the UI thread and can be interrupted mid-flight.
 
-<!--
-  Demo video: open this README in the GitHub editor, drag your screen recording in,
-  and replace this comment with the link GitHub generates.
--->
+<table>
+  <tr>
+    <td align="center"><a href="assets/morph-animation.mp4"><img src="assets/morph-animation.gif" width="320" alt="Button label morph and typing with rolling digits" /></a></td>
+    <td align="center"><a href="assets/icon-animation.mp4"><img src="assets/icon-animation.gif" width="320" alt="Icon morph between ten icons" /></a></td>
+  </tr>
+  <tr>
+    <td align="center">Button labels and typing</td>
+    <td align="center">Icon morph</td>
+  </tr>
+</table>
+
+<sub>Click either demo for the full-quality video.</sub>
 
 ```sh
 npm install torph-reactnative
