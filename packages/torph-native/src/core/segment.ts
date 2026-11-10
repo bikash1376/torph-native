@@ -1,6 +1,7 @@
 export type { Segment } from "./types";
 import type { Segment } from "./types";
 import { isNumericWord, segmentNumber } from "./number";
+import { splitGraphemes } from "./graphemes";
 
 // A collision makes two segments fight over one element and one silently loses its
 // text, so uniqueness has to hold across the whole value, not per line.
@@ -179,7 +180,7 @@ function segmentsFallback(
   offset: number,
   alloc: IdAllocator,
 ): Segment[] {
-  const parts = byWord ? value.split(" ") : Array.from(value);
+  const parts = byWord ? value.split(" ") : splitGraphemes(value);
   const segments: Segment[] = [];
   let index = offset;
 

@@ -1,92 +1,74 @@
-// Demo screen for torph-native. Tap each row to morph it.
-import { useState } from "react";
+// torph-native example: a gallery recreating the motion in Benji Taylor's "Family Values"
+// with nothing but torph-native components. Each section names the videos it follows.
 import { StatusBar } from "expo-status-bar";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { TextMorph } from "torph-native";
-
-const LABELS = ["Continue", "Confirm", "Confirming…", "Confirmed"];
-const PHRASES = ["Send money", "Sending money", "Money sent", "Send again"];
+import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { ChartDemo, ReorderDemo } from "./src/demos/DataDemos";
+import { AnimatedIconsDemo, EmojiDemo, IconMorphDemo } from "./src/demos/IconDemos";
+import { PlaygroundDemo } from "./src/demos/PlaygroundDemo";
+import { ButtonToTrayDemo, TrayDemo } from "./src/demos/SurfaceDemos";
+import {
+  AmountDemo,
+  ButtonLabelDemo,
+  EmptyStateDemo,
+  FlowTitleDemo,
+  TypingDemo,
+} from "./src/demos/TextDemos";
+import { C, PAGE } from "./src/ui";
 
 export default function App() {
-  const [label, setLabel] = useState(0);
-  const [phrase, setPhrase] = useState(0);
-  const [balance, setBalance] = useState(1204.5);
-  const [typed, setTyped] = useState("120");
-  const [caret, setCaret] = useState<number>();
+  const { width } = useWindowDimensions();
+  // Inner width of a section card: page gutters and card padding taken off.
+  const inner = width - PAGE * 2;
 
   return (
     <View style={styles.screen}>
       <StatusBar style="dark" />
-      <Section title="Button label">
-        <Pressable
-          style={styles.button}
-          onPress={() => setLabel((i) => (i + 1) % LABELS.length)}
-        >
-          <TextMorph style={styles.buttonText}>{LABELS[label]!}</TextMorph>
-        </Pressable>
-      </Section>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <Text style={styles.kicker}>torph-native</Text>
+        <Text style={styles.heading}>Family values, in React Native</Text>
+        <Text style={styles.lede}>
+          Text, number, emoji and icon morphs, trays, charts and layout — every demo below is built
+          only from the library.
+        </Text>
 
-      <Section title="Phrase (spring)">
-        <Pressable onPress={() => setPhrase((i) => (i + 1) % PHRASES.length)}>
-          <TextMorph style={styles.body} ease={{ stiffness: 220, damping: 24 }}>
-            {PHRASES[phrase]!}
-          </TextMorph>
-        </Pressable>
-      </Section>
+        <Text style={styles.chapter}>Text</Text>
+        <ButtonLabelDemo />
+        <FlowTitleDemo />
+        <AmountDemo width={inner} />
+        <EmptyStateDemo />
+        <TypingDemo />
+        <PlaygroundDemo />
 
-      <Section title="Number">
-        <Pressable onPress={() => setBalance((b) => b + Math.round(Math.random() * 400 - 150))}>
-          <TextMorph style={styles.number} decimals={2}>
-            {balance}
-          </TextMorph>
-        </Pressable>
-      </Section>
+        <Text style={styles.chapter}>Icons & emoji</Text>
+        <AnimatedIconsDemo />
+        <IconMorphDemo />
+        <EmojiDemo />
 
-      <Section title="Typing (cursorIndex)">
-        <TextInput
-          value={typed}
-          keyboardType="number-pad"
-          style={styles.input}
-          onSelectionChange={(e) => setCaret(e.nativeEvent.selection.end)}
-          onChangeText={setTyped}
-        />
-        <TextMorph style={styles.number} cursorIndex={caret}>
-          {`$${typed}`}
-        </TextMorph>
-      </Section>
-    </View>
-  );
-}
+        <Text style={styles.chapter}>Surfaces</Text>
+        <TrayDemo />
+        <ButtonToTrayDemo width={inner} />
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <View style={styles.section}>
-      <Text style={styles.caption}>{title}</Text>
-      {children}
+        <Text style={styles.chapter}>Data & layout</Text>
+        <ChartDemo width={inner} />
+        <ReorderDemo />
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, justifyContent: "center", padding: 24, gap: 32, backgroundColor: "#fff" },
-  section: { gap: 10, alignItems: "flex-start" },
-  caption: { fontSize: 13, color: "#8a8a8a" },
-  button: {
-    backgroundColor: "#111",
-    borderRadius: 999,
-    paddingHorizontal: 22,
-    paddingVertical: 14,
-  },
-  buttonText: { color: "#fff", fontSize: 17, fontWeight: "600" },
-  body: { fontSize: 22, fontWeight: "500", color: "#111" },
-  number: { fontSize: 34, fontWeight: "700", color: "#111", fontVariant: ["tabular-nums"] },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    minWidth: 160,
-    fontSize: 17,
+  screen: { flex: 1, backgroundColor: C.bg },
+  content: { paddingHorizontal: PAGE, paddingTop: 72, paddingBottom: 80 },
+  kicker: { fontSize: 13, fontWeight: "700", color: C.accent, letterSpacing: 0.4 },
+  heading: { fontSize: 32, fontWeight: "800", color: C.ink, letterSpacing: -0.8, marginTop: 6 },
+  lede: { fontSize: 15, color: C.muted, lineHeight: 21, marginTop: 8, marginBottom: 12 },
+  chapter: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: C.muted,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginTop: 16,
+    marginBottom: 14,
   },
 });

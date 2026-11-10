@@ -1,6 +1,7 @@
 import type { Segment } from "./segment";
 import { createIdAllocator, groupIntoWords, segmentText } from "./segment";
 import { lcsIndices } from "./lcs";
+import { splitGraphemes } from "./graphemes";
 import type { NumberSegment } from "./number";
 import {
   classifyKind,
@@ -32,12 +33,12 @@ function splitIfWhole(
   splits: Map<string, Segment[]>,
 ): Segment[] {
   // Cutting a one-character word mints a new ID for a character that never moved.
-  if (oldGroup.segments.length !== 1 || Array.from(oldGroup.word).length <= 1) {
+  if (oldGroup.segments.length !== 1 || splitGraphemes(oldGroup.word).length <= 1) {
     return oldGroup.segments;
   }
 
   const wordSeg = oldGroup.segments[0]!;
-  const charSegs = Array.from(oldGroup.word).map((char, i) => ({
+  const charSegs = splitGraphemes(oldGroup.word).map((char, i) => ({
     id: `${wordSeg.id}:${i}`,
     string: char,
   }));
@@ -63,7 +64,7 @@ type WordPlan =
 
 function charSimilarity(a: string, b: string): number {
   if (a.length === 0 || b.length === 0) return 0;
-  const [matched] = lcsIndices(Array.from(a), Array.from(b));
+  const [matched] = lcsIndices(splitGraphemes(a), splitGraphemes(b));
   return matched.length / Math.max(a.length, b.length);
 }
 
@@ -296,8 +297,8 @@ export function diffSegments(
       const oldWord = oldGroup.word;
       const oldCharSegs = splitIfWhole(oldGroup, splits);
 
-      const oldChars = Array.from(oldWord);
-      const newChars = Array.from(newWord);
+      const oldChars = splitGraphemes(oldWord);
+      const newChars = splitGraphemes(newWord);
       const [oldCharLcs, newCharLcs] = lcsIndices(oldChars, newChars);
 
       const newCharToOldSeg = new Map<number, Segment>();

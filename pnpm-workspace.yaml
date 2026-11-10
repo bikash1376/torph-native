@@ -8,3 +8,4 @@ overrides:
   react-native: 0.88.1
   react-native-reanimated: 4.7.1
   react-native-worklets: 0.13.0
+  react-native-svg: 15.16.0

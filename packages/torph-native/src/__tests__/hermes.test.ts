@@ -20,6 +20,18 @@ describe("without Intl.Segmenter", () => {
     expect(segments.map((s) => s.string)).toEqual(["h", "i", "🚀"]);
   });
 
+  it("keeps multi-code-point emoji whole", () => {
+    expect(segmentText("a👨‍👩‍👧b", "en").map((s) => s.string)).toEqual(["a", "👨‍👩‍👧", "b"]);
+    expect(segmentText("👍🏽🇮🇳1️⃣", "en").map((s) => s.string)).toEqual(["👍🏽", "🇮🇳", "1️⃣"]);
+    expect(segmentText("café", "en").map((s) => s.string)).toEqual(["c", "a", "f", "é"]);
+  });
+
+  it("morphs emoji inside a phrase without splitting them", () => {
+    const start = segmentText("Not enough ETH", "en");
+    const { segments } = diffSegments(start, "Still not enough ETH 😳", "en");
+    expect(segments.map((s) => s.string)).toContain("😳");
+  });
+
   it("segments words and morphs between them", () => {
     const start = segmentText("Send money", "en");
     expect(start.map((s) => s.string)).toEqual(["Send", " ", "money"]);

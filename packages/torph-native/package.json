@@ -1,7 +1,7 @@
 {
   "name": "torph-native",
   "version": "0.1.0",
-  "description": "Animated text morphing for React Native. A port of torph, powered by Reanimated.",
+  "description": "Morphing UI for React Native: text, numbers, emoji, icons, trays and charts. Text engine ported from torph; built on Reanimated.",
   "license": "MIT",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -12,6 +12,16 @@
       "types": "./lib/index.d.ts",
       "react-native": "./src/index.ts",
       "default": "./lib/index.js"
+    },
+    "./icons": {
+      "types": "./lib/icons/index.d.ts",
+      "react-native": "./src/icons/index.ts",
+      "default": "./lib/icons/index.js"
+    },
+    "./chart": {
+      "types": "./lib/chart/index.d.ts",
+      "react-native": "./src/chart/index.ts",
+      "default": "./lib/chart/index.js"
     },
     "./package.json": "./package.json"
   },
@@ -34,12 +44,18 @@
     "text",
     "morph",
     "animation",
-    "torph"
+    "torph",
+    "icons",
+    "svg",
+    "morph-icons",
+    "tray",
+    "chart"
   ],
   "peerDependencies": {
     "react": ">=18",
     "react-native": ">=0.74",
-    "react-native-reanimated": ">=3.6"
+    "react-native-reanimated": ">=3.6",
+    "react-native-svg": ">=15"
   },
   "devDependencies": {
     "@torph/test-cases": "workspace:*",
@@ -49,6 +65,12 @@
     "react-native-reanimated": "4.7.1",
     "react-native-worklets": "0.13.0",
     "typescript": "^7.0.2",
-    "vitest": "^5.1.0"
+    "vitest": "^5.1.0",
+    "react-native-svg": "15.16.0"
+  },
+  "peerDependenciesMeta": {
+    "react-native-svg": {
+      "optional": true
+    }
   }
 }

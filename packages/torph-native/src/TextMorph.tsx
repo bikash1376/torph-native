@@ -25,6 +25,7 @@ import Animated, {
 import { diffSegments } from "./core/diff";
 import { segmentText } from "./core/segment";
 import type { Segment } from "./core/types";
+import { fitScale } from "./fit";
 import { Glyph } from "./Glyph";
 import {
   DEFAULT_DURATION,
@@ -70,6 +71,11 @@ export interface TextMorphProps {
    * Default true. Off, the box snaps to its new size and only the glyphs move.
    */
   animateSize?: boolean;
+  /**
+   * Shrink the whole value to stay within this width, as amount inputs do when a
+   * number grows. The scale eases with the morph.
+   */
+  maxWidth?: number;
   /** Caret position, for values being typed: matches by position instead of place value. */
   cursorIndex?: number;
   /** Render plain text with no animation. */
@@ -403,7 +409,9 @@ function MorphText(props: InnerProps) {
       plan={plan}
       motion={motion}
       animateSize={props.animateSize !== false}
+      maxWidth={props.maxWidth}
       style={props.containerStyle}
+      overlay={measurer}
       {...a11y(props)}
     >
       {plan.glyphs.map((glyph) =>
@@ -421,7 +429,6 @@ function MorphText(props: InnerProps) {
           />
         ),
       )}
-      {measurer}
     </MorphFrame>
   );
 }
@@ -431,32 +438,46 @@ function MorphFrame({
   plan,
   motion,
   animateSize,
+  maxWidth,
   style,
+  overlay,
   children,
   ...rest
 }: {
   plan: FramePlan;
   motion: Motion;
   animateSize: boolean;
+  maxWidth?: number;
   style?: StyleProp<ViewStyle>;
+  overlay?: ReactNode;
   children: ReactNode;
 } & ReturnType<typeof a11y>) {
   const width = useSharedValue(plan.width);
   const height = useSharedValue(plan.height);
+  const scale = useSharedValue(fitScale(plan.width, maxWidth));
   const mounted = useRef(plan.frame);
 
   useEffect(() => {
     if (mounted.current === plan.frame) return;
+    const fit = fitScale(plan.width, maxWidth);
     width.value = animateSize ? move(plan.width, motion) : plan.width;
     height.value = animateSize ? move(plan.height, motion) : plan.height;
+    // Shrinking to fit rides the same curve, so a long value settles smaller in one move.
+    scale.value = animateSize ? move(fit, motion) : fit;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [plan.frame, plan.width, plan.height]);
+  }, [plan.frame, plan.width, plan.height, maxWidth]);
 
-  const size = useAnimatedStyle(() => ({ width: width.value, height: height.value }));
+  const size = useAnimatedStyle(() => ({
+    width: width.value * scale.value,
+    height: height.value * scale.value,
+  }));
+  // A zero-size layer, so scaling it scales about the box's top-left corner.
+  const layer = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   return (
     <Animated.View style={[style, styles.frame, size]} {...rest}>
-      {children}
+      <Animated.View style={[styles.layer, layer]}>{children}</Animated.View>
+      {overlay}
     </Animated.View>
   );
 }
@@ -555,6 +576,14 @@ const overlayAlign = {
 
 const styles = StyleSheet.create({
   frame: {
+    overflow: "visible",
+  },
+  layer: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    width: 0,
+    height: 0,
     overflow: "visible",
   },
   overlay: {

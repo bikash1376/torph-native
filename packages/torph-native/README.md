@@ -1,6 +1,21 @@
 # torph-native
 
-Animated text morphing for React Native: a port of [torph](https://github.com/lochie/torph) by Lochie Axon, built on Reanimated.
+Morphing UI for React Native, built on Reanimated. It started as a port of [torph](https://github.com/lochie/torph) by Lochie Axon for text, and has grown to cover the rest of the motion in Benji Taylor's [Family Values](https://benji.org/family-values): icons, emoji, trays, charts and layout.
+
+| Import | What it does |
+| --- | --- |
+| `TextMorph` | Text and numbers that morph letter by letter and digit by digit, and can shrink to fit |
+| `IconSwap` | Swaps one icon, emoji or small view for another with a replace transition |
+| `MorphTray` | A tray whose height follows its content as it moves from step to step |
+| `MorphBox` | A button that grows into a tray and shrinks back |
+| `StepIndicator` | Step dashes; the current one stretches |
+| `MorphItem` | List and grid items that glide to their new place when the order changes |
+| `torph-native/icons` | `IconMorph` (any icon → any icon) plus ten animated icons |
+| `torph-native/chart` | `LineChartMorph`: a line that redraws from one dataset into the next |
+
+The icon and chart entry points need `react-native-svg`. Everything else needs only Reanimated.
+
+## TextMorph
 
 When the text changes, characters the old and new values share slide to their new places. The rest fade out and in, and numbers roll by place value like an odometer. Use it for button labels (`Continue` → `Confirm`), status lines, counters, balances, and anything else that changes in place.
 
@@ -42,7 +57,13 @@ If Reanimated isn't set up yet, follow its [installation guide](https://docs.swm
 
 ```sh
 npx expo install react-native-reanimated react-native-worklets
+# only for torph-native/icons and torph-native/chart:
+npx expo install react-native-svg
 ```
+
+| Optional peer | Version | Needed for |
+| --- | --- | --- |
+| `react-native-svg` | ≥ 15 | `torph-native/icons`, `torph-native/chart` |
 
 ---
 
@@ -155,6 +176,154 @@ Newlines in the value start new lines, and words keep their identity when they m
 
 Like torph, the text never wraps on its own: a line break exists only where the value contains one.
 
+### Shrink to fit
+
+Amount fields shrink as the number grows. Set `maxWidth` and the whole value scales down to fit. The scale animates along with the morph.
+
+```tsx
+<TextMorph maxWidth={320} style={{ fontSize: 60, fontWeight: "700" }}>
+  {`$${amount}`}
+</TextMorph>
+```
+
+### Emoji
+
+Emoji morph like any other character, and multi-code-point emoji stay whole: families (👨‍👩‍👧), skin tones (👍🏽), flags (🇮🇳) and keycaps (1️⃣). This holds even on engines without `Intl.Segmenter`, because `torph-native` has its own grapheme splitter.
+
+```tsx
+<TextMorph>{tooMuch ? "Still not enough ETH 😳" : "Not enough ETH"}</TextMorph>
+```
+
+---
+
+## Icons and emoji
+
+### `IconSwap`
+
+Swaps one small view for another. The outgoing one scales down and fades while the incoming one springs up from 0.6. It works with icons from any library, emoji, or images, and a swap can be interrupted.
+
+```tsx
+import { IconSwap } from "torph-native";
+
+<IconSwap swapKey={muted ? "off" : "on"} variant="scale">
+  {muted ? <BellOff /> : <Bell />}
+</IconSwap>
+```
+
+`variant`: `scale` (default) · `slide-up` · `slide-down` · `rotate`. `duration` sets the outgoing fade (default 180 ms).
+
+### `IconMorph`: any icon into any icon
+
+```tsx
+import { IconMorph, circlePath, rectPath } from "torph-native/icons";
+
+<IconMorph d={open ? ["M6 6l12 12", "M18 6L6 18"] : ["M4 6h16", "M4 12h16", "M4 18h16"]} />
+```
+
+Give it SVG path data (one `d` string or one per `<path>`) from any icon set: Lucide, Feather, Tabler, Heroicons or your own. Changing `d` morphs the drawing into the new icon. It's written from scratch, with no flubber.
+
+1. Every path is parsed (all SVG commands, including arcs) and flattened.
+2. Each stroke is resampled to the same number of points.
+3. Each stroke of the old icon is paired with the nearest stroke of the new one.
+4. Strokes without a partner grow out of, or shrink into, their own centre.
+5. The blend runs on the UI thread.
+
+Icons drawn with `<circle>`, `<rect>` or `<line>` convert to paths with `circlePath`, `rectPath` and `linePath`.
+
+| Prop | Default | |
+| --- | --- | --- |
+| `d` | — | Path data: a string or an array of strings |
+| `size` / `viewBox` | `24` / `24` | Pixel size and the icon set's grid |
+| `color`, `strokeWidth` | `#111`, `2` | |
+| `filled` | `false` | Fill instead of stroke, for solid icon sets |
+| `samples` | `40` | Points per stroke |
+| `spring` / `duration` | spring | Uses a timing curve when `duration` is set |
+
+### Animated icons
+
+Ten state-driven icons drawn with `react-native-svg`. Each animates when its prop changes:
+
+| Icon | Prop | Animation |
+| --- | --- | --- |
+| `LockIcon` | `locked` | The shackle lifts and frees its left leg |
+| `ProgressCheck` | `state: "idle" \| "loading" \| "success"`, `badge` | A spinner completes its ring and draws a check. With `badge`, the circle fills like a verified badge |
+| `CheckCircle` | `checked` | The circle fills, the check draws in and the icon pops |
+| `ChevronIcon` | `direction` | Rotates to point up, down, left or right |
+| `PlusCloseIcon` | `open` | + turns 45° into × |
+| `StarIcon`, `HeartIcon` | `filled` | Fills with a springy pop |
+| `TrashIcon` | `open` | The lid tips open about its left end |
+| `SendIcon` | `sendKey` | Flies out to the top right and glides back in |
+| `CopyIcon` | `copied` | The copy glyph swaps to a green check |
+
+They all take `size`, `color`, `strokeWidth` and `style`.
+
+---
+
+## Surfaces
+
+### `MorphTray`
+
+A tray whose height follows its content. Change `step` and the tray springs to the new content's height while the old content fades out over the new, so one tray becomes the next instead of a new sheet stacking on top.
+
+```tsx
+<MorphTray step={step} style={styles.tray} contentStyle={{ padding: 20 }}>
+  {step === "options" ? <Options onPick={setStep} /> : <PrivateKey onBack={() => setStep("options")} />}
+</MorphTray>
+```
+
+### `MorphBox`
+
+A "Continue" button that grows into the tray it opens, then shrinks back into the button on Cancel. Size, corner radius and colour all move on one spring, and the contents crossfade.
+
+```tsx
+<MorphBox
+  expanded={open}
+  collapsedWidth={width}
+  collapsedHeight={52}
+  collapsedColor="#fff"
+  expandedColor="#1C1C1E"
+  collapsed={<Pressable onPress={() => setOpen(true)}><Text>Continue</Text></Pressable>}
+>
+  <AllowAccess onCancel={() => setOpen(false)} />
+</MorphBox>
+```
+
+When expanded, the box fills the width available to its wrapper (`style`). Place the wrapper where the box should grow from, for example at the bottom of a `justifyContent: "flex-end"` screen.
+
+### `StepIndicator`
+
+```tsx
+<StepIndicator count={5} index={step} />
+```
+
+The current step's dash stretches and takes the accent colour.
+
+---
+
+## Data and layout
+
+### `LineChartMorph`
+
+```tsx
+import { LineChartMorph } from "torph-native/chart";
+
+<LineChartMorph data={series[range]} width={340} height={150} color={up ? "#16A34A" : "#FF3B30"} />
+```
+
+Both series are resampled to the same number of points (`samples`, default 72), so any dataset can reshape into any other. The morph uses a strong ease-in-out over 520 ms, because the line moves in place on screen. A dot marks the latest value. Switching range mid-morph carries on from the line as it is on screen.
+
+### `MorphItem`
+
+```tsx
+{tokens.map((t) => (
+  <MorphItem key={t.id}>
+    <TokenRow token={t} />
+  </MorphItem>
+))}
+```
+
+When the list reorders, regroups or reflows, each item springs to its new place. Added and removed items fade in and out. Give each item a stable `key`.
+
 ---
 
 ## API
@@ -172,6 +341,7 @@ Like torph, the text never wraps on its own: a line break exists only where the 
 | `decimals` | `number` | — | Number of decimal places when `children` is a number. |
 | `numbers` | `boolean` | `true` | Morph numbers by place value. |
 | `cursorIndex` | `number` | — | Caret position. Matches characters by position instead of place value. |
+| `maxWidth` | `number` | — | Scale the whole value down to fit this width. The scale animates with the morph. |
 | `scale` | `boolean` | `true` | Shrink exiting characters to 0.95 as they fade. |
 | `animateSize` | `boolean` | `true` | Animate the box's width and height so surrounding layout doesn't jump. |
 | `disabled` | `boolean` | `false` | Render plain text with no animation. |
@@ -243,7 +413,9 @@ The timing shares are torph's. Under reduced motion, nothing moves: the old valu
 - **Kerning and ligatures.** Each character is its own `Text`, so kerning between them is lost (torph has the same trade-off). The difference is invisible in most UI fonts. Script fonts and scripts that join their letters, such as Arabic, won't render correctly while split into characters.
 - **Left-to-right only.** Right-to-left layout isn't handled yet.
 - **Reduced motion is read once.** Reanimated's `useReducedMotion` reads the setting when the component mounts, so a change made while the app is running takes effect on the next mount.
-- **`Intl.Segmenter`.** Where Hermes doesn't provide it, segmentation falls back to splitting on spaces and code points. That works for Latin text and emoji, but combined emoji (👨‍👩‍👧) and other multi-code-point graphemes may split. A polyfill such as `@formatjs/intl-segmenter` fixes this.
+- **`Intl.Segmenter`.** Where Hermes doesn't provide it, `torph-native` uses its own grapheme splitter. That covers emoji sequences, combining accents and Devanagari signs, but not every Unicode rule. For other complex scripts, add a polyfill such as `@formatjs/intl-segmenter`.
+- **`IconMorph` draws polylines.** Each stroke becomes 40 points by default, so very large icons with tight curves may need a higher `samples` value.
+- **Not built yet:** moving an element between screens (Family's card and NFT hand-offs). `MorphBox` covers the same-screen version.
 - **The first frame shows plain text.** Before any glyph has been measured, the value renders as a normal `Text` in the same place, then switches to glyphs once the widths are known. Morphing starts from the second value on.
 
 ---
@@ -253,19 +425,21 @@ The timing shares are torph's. Under reduced motion, nothing moves: the old valu
 This is a pnpm workspace.
 
 ```
+apps/example/        Expo SDK 58 gallery recreating the Family Values videos
 packages/
-  torph-native/     the library
-    src/core/       segmentation and diff, copied from torph
-    src/plan.ts     layout and animation planning (pure, unit tested)
-    src/Glyph.tsx   one animated glyph
-    src/TextMorph.tsx
-  (apps/example)    Expo SDK 58 demo app using the package from the workspace
-  test-cases/       torph's shared test corpus
+  torph-native/
+    src/core/        segmentation, diff and graphemes (diff copied from torph)
+    src/plan.ts      text layout and animation planning (pure, unit tested)
+    src/TextMorph.tsx, Glyph.tsx
+    src/IconSwap.tsx, MorphTray.tsx, MorphBox.tsx, MorphItem.tsx, StepIndicator.tsx
+    src/icons/       IconMorph (+ morph.ts path engine) and the animated icons
+    src/chart/       LineChartMorph (+ path.ts helpers)
+  test-cases/        torph's shared test corpus
 ```
 
 ```sh
 pnpm install
-pnpm test        # vitest: torph's suite plus the planner, spring and Hermes-fallback tests
+pnpm test        # vitest: torph's suite plus the planner, icon-morph, chart, grapheme and Hermes tests
 pnpm typecheck
 pnpm build       # emits lib/
 ```
