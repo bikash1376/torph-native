@@ -363,7 +363,7 @@ import { MorphList, MorphItem } from "torph-reactnative";
 </MorphList>
 ```
 
-With `bounce`, items overshoot slightly (about 5% of the distance) and settle. Inside a `MorphList`, items landing in the first or last slot glide in without overshooting, because that is where a bounce would leave the list, and the list clips its contents as a safety net. Without `bounce`, every item glides straight to its place.
+With `bounce`, items settle with a very slight overshoot (about 1.5% of the distance, roughly a pixel per row moved). Lower `damping` for more bounce. Inside a `MorphList`, items landing in the first or last slot glide in without overshooting, because that is where a bounce would leave the list, and the list clips its contents as a safety net. Without `bounce`, every item glides straight to its place.
 
 ---
 

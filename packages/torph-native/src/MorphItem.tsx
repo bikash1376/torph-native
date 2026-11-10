@@ -14,7 +14,7 @@ export interface MorphListProps {
 /**
  * A container for MorphItems that keeps their motion inside it. Items that land in
  * the first or last slot glide in without overshooting (that is where an overshoot
- * would leave the box); items landing in between may bounce, which a gentle spring
+ * would leave the box); items landing in between settle with a slight bounce, which a soft spring
  * keeps well inside their neighbours' room. The list also clips, as a safety net.
  */
 export function MorphList({ children, style }: MorphListProps) {
@@ -34,12 +34,13 @@ export interface MorphItemProps {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
   /**
-   * Let the move overshoot and settle, about 5% of the distance. Inside a MorphList,
+   * Let the move overshoot very slightly and settle (about 1.5% of the distance: a
+   * pixel or so per row moved). Inside a MorphList,
    * items landing in the first or last slot still glide in, so nothing leaves the
    * list. Default false: every move glides.
    */
   bounce?: boolean;
-  /** Spring damping for the move. Default 30, or 21 with `bounce`. */
+  /** Spring damping for the move. Default 30, or 25 with `bounce`. Lower it for more bounce. */
   damping?: number;
   /** Spring stiffness for the move. Default 260, or 240 with `bounce`. */
   stiffness?: number;
@@ -55,7 +56,7 @@ export function MorphItem({ children, style, bounce = false, damping, stiffness 
   const bouncy = bounce && !atEdge;
 
   const layout = LinearTransition.springify()
-    .damping(damping ?? (bouncy ? 21 : 30))
+    .damping(damping ?? (bouncy ? 25 : 30))
     .stiffness(stiffness ?? (bouncy ? 240 : 260))
     .overshootClamping(bouncy ? 0 : 1);
 
