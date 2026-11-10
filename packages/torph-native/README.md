@@ -13,6 +13,8 @@ Text that morphs letter by letter, numbers that roll digit by digit, icons that 
 npm install torph-reactnative
 ```
 
+**Requires** `react-native-reanimated` (plus `react-native-worklets` on Reanimated 4). `react-native-svg` is needed only for the icons and the chart. No native code of its own, and it works in Expo Go. See [Installation](#installation).
+
 ```tsx
 import { TextMorph } from "torph-reactnative";
 
@@ -77,6 +79,7 @@ The package has no native code of its own. It needs:
 | `react` | ≥ 18 | everything |
 | `react-native` | ≥ 0.74 | everything |
 | `react-native-reanimated` | ≥ 3.6 (built against 4.x) | everything |
+| `react-native-worklets` | the version your Reanimated 4 asks for | everything, on Reanimated 4 (not needed on Reanimated 3) |
 | `react-native-svg` | ≥ 15 | only `torph-reactnative/icons` and `torph-reactnative/chart` |
 
 With Expo:
