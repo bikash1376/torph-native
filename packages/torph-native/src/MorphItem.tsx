@@ -1,19 +1,10 @@
-import { createContext, useContext, useMemo, type ReactNode } from "react";
-import { View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from "react-native";
-import Animated, {
-  FadeIn,
-  FadeOut,
-  LinearTransition,
-  useSharedValue,
-  withClamp,
-  withSpring,
-  type LayoutAnimationsValues,
-  type SharedValue,
-} from "react-native-reanimated";
+import { Children, createContext, useContext, type ReactNode } from "react";
+import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
+import Animated, { FadeIn, FadeOut, LinearTransition } from "react-native-reanimated";
 
-type Bounds = { width: SharedValue<number>; height: SharedValue<number> };
+type Slot = { index: number; count: number };
 
-const ListBounds = createContext<Bounds | null>(null);
+const ListSlot = createContext<Slot | null>(null);
 
 export interface MorphListProps {
   children: ReactNode;
@@ -21,25 +12,21 @@ export interface MorphListProps {
 }
 
 /**
- * A container for MorphItems that keeps their motion inside it. Items may spring and
- * overshoot (`bounce`), but every move is clamped to the list's own box, so a row
- * travelling from the top to the bottom settles with a bounce without ever swinging
- * past the edge.
+ * A container for MorphItems that keeps their motion inside it. Items that land in
+ * the first or last slot glide in without overshooting (that is where an overshoot
+ * would leave the box); items landing in between may bounce, which a gentle spring
+ * keeps well inside their neighbours' room. The list also clips, as a safety net.
  */
 export function MorphList({ children, style }: MorphListProps) {
-  const width = useSharedValue(0);
-  const height = useSharedValue(0);
-  const bounds = useMemo(() => ({ width, height }), [width, height]);
-  const onLayout = (event: LayoutChangeEvent) => {
-    width.value = event.nativeEvent.layout.width;
-    height.value = event.nativeEvent.layout.height;
-  };
+  const items = Children.toArray(children);
   return (
-    <ListBounds.Provider value={bounds}>
-      <View style={style} onLayout={onLayout}>
-        {children}
-      </View>
-    </ListBounds.Provider>
+    <View style={[styles.list, style]}>
+      {items.map((child, index) => (
+        <ListSlot.Provider key={(child as { key?: string }).key ?? index} value={{ index, count: items.length }}>
+          {child}
+        </ListSlot.Provider>
+      ))}
+    </View>
   );
 }
 
@@ -47,56 +34,30 @@ export interface MorphItemProps {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
   /**
-   * Let the move overshoot and settle. Inside a MorphList the overshoot is clamped to
-   * the list's box; on its own it is free. Default false: a straight glide.
+   * Let the move overshoot and settle, about 5% of the distance. Inside a MorphList,
+   * items landing in the first or last slot still glide in, so nothing leaves the
+   * list. Default false: every move glides.
    */
   bounce?: boolean;
-  /** Spring damping for the move. Default 30, or 14 with `bounce`. */
+  /** Spring damping for the move. Default 30, or 21 with `bounce`. */
   damping?: number;
-  /** Spring stiffness for the move. Default 260, or 200 with `bounce`. */
+  /** Spring stiffness for the move. Default 260, or 240 with `bounce`. */
   stiffness?: number;
 }
 
 /**
- * An item that glides to its new place when its list or grid reorders, regroups or
+ * An item that springs to its new place when its list or grid reorders, regroups or
  * reflows, and fades in and out as it is added or removed. Give each one a stable key.
  */
 export function MorphItem({ children, style, bounce = false, damping, stiffness }: MorphItemProps) {
-  const bounds = useContext(ListBounds);
-  const d = damping ?? (bounce ? 14 : 30);
-  const k = stiffness ?? (bounce ? 200 : 260);
+  const slot = useContext(ListSlot);
+  const atEdge = slot !== null && (slot.index === 0 || slot.index === slot.count - 1);
+  const bouncy = bounce && !atEdge;
 
-  const layout = useMemo(() => {
-    if (!bounce || !bounds) {
-      return LinearTransition.springify()
-        .damping(d)
-        .stiffness(k)
-        .overshootClamping(bounce ? 0 : 1);
-    }
-    const { width, height } = bounds;
-    // A bouncy spring whose position can't leave the list: clamp each axis to the
-    // range where the whole item is still inside its parent.
-    return (values: LayoutAnimationsValues) => {
-      "worklet";
-      const spring = { damping: d, stiffness: k, mass: 1 };
-      const maxX = Math.max(0, width.value - values.targetWidth);
-      const maxY = Math.max(0, height.value - values.targetHeight);
-      return {
-        initialValues: {
-          originX: values.currentOriginX,
-          originY: values.currentOriginY,
-          width: values.currentWidth,
-          height: values.currentHeight,
-        },
-        animations: {
-          originX: withClamp({ min: 0, max: maxX }, withSpring(values.targetOriginX, spring)),
-          originY: withClamp({ min: 0, max: maxY }, withSpring(values.targetOriginY, spring)),
-          width: withSpring(values.targetWidth, { ...spring, overshootClamping: true }),
-          height: withSpring(values.targetHeight, { ...spring, overshootClamping: true }),
-        },
-      };
-    };
-  }, [bounce, bounds, d, k]);
+  const layout = LinearTransition.springify()
+    .damping(damping ?? (bouncy ? 21 : 30))
+    .stiffness(stiffness ?? (bouncy ? 240 : 260))
+    .overshootClamping(bouncy ? 0 : 1);
 
   return (
     <Animated.View
@@ -109,3 +70,7 @@ export function MorphItem({ children, style, bounce = false, damping, stiffness 
     </Animated.View>
   );
 }
+
+const styles = StyleSheet.create({
+  list: { overflow: "hidden" },
+});
