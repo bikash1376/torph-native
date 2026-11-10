@@ -5,7 +5,7 @@ export type { MorphEase } from "./motion";
 export { DEFAULT_DURATION, DEFAULT_EASING } from "./motion";
 export type { SpringParams } from "./core/spring";
 
-// Icons and emoji (no SVG needed; animated SVG icons live in "torph-native/icons")
+// Icons and emoji (no SVG needed; animated SVG icons live in "torph-reactnative/icons")
 export { IconSwap } from "./IconSwap";
 export type { IconSwapProps, IconSwapVariant } from "./IconSwap";
 

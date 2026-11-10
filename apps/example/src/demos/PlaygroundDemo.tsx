@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Easing } from "react-native-reanimated";
-import { TextMorph, type MorphEase } from "torph-native";
+import { TextMorph, type MorphEase } from "torph-reactnative";
 import { C, Chip, Section } from "../ui";
 
 const PHRASES = [

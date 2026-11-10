@@ -1,4 +1,4 @@
-# torph-native
+# torph-reactnative
 
 Morphing UI for React Native, built on Reanimated. It started as a port of [torph](https://github.com/lochie/torph) by Lochie Axon for text, and has grown to cover the rest of the motion in Benji Taylor's [Family Values](https://benji.org/family-values): icons, emoji, trays, charts and layout.
 
@@ -10,8 +10,8 @@ Morphing UI for React Native, built on Reanimated. It started as a port of [torp
 | `MorphBox` | A button that grows into a tray and shrinks back |
 | `StepIndicator` | Step dashes; the current one stretches |
 | `MorphItem` | List and grid items that glide to their new place when the order changes |
-| `torph-native/icons` | `IconMorph` (any icon → any icon) plus ten animated icons |
-| `torph-native/chart` | `LineChartMorph`: a line that redraws from one dataset into the next |
+| `torph-reactnative/icons` | `IconMorph` (any icon → any icon) plus ten animated icons |
+| `torph-reactnative/chart` | `LineChartMorph`: a line that redraws from one dataset into the next |
 
 The icon and chart entry points need `react-native-svg`. Everything else needs only Reanimated.
 
@@ -20,14 +20,14 @@ The icon and chart entry points need `react-native-svg`. Everything else needs o
 When the text changes, characters the old and new values share slide to their new places. The rest fade out and in, and numbers roll by place value like an odometer. Use it for button labels (`Continue` → `Confirm`), status lines, counters, balances, and anything else that changes in place.
 
 ```tsx
-import { TextMorph } from "torph-native";
+import { TextMorph } from "torph-reactnative";
 
 <TextMorph style={{ fontSize: 17, fontWeight: "600" }}>
   {loading ? "Confirming…" : "Confirm"}
 </TextMorph>
 ```
 
-- **Same engine as torph.** The segmentation and diff code is copied from torph, along with its full test corpus, so `torph-native` decides what morphs into what exactly the way torph does on the web.
+- **Same engine as torph.** The segmentation and diff code is copied from torph, along with its full test corpus, so `torph-reactnative` decides what morphs into what exactly the way torph does on the web.
 - **Runs on the UI thread.** Every glyph is driven by Reanimated shared values. Nothing animates through React state.
 - **No first-frame jump.** Positions are calculated from measured glyph widths before anything renders. Nothing is measured after the fact and corrected later.
 - **Interruptible.** If the value changes mid-morph, every glyph retargets from where it is on screen. Characters on their way out that come back reverse their exit.
@@ -38,14 +38,14 @@ import { TextMorph } from "torph-native";
 ## Installation
 
 ```sh
-npm install torph-native
+npm install torph-reactnative
 # or
-pnpm add torph-native
+pnpm add torph-reactnative
 # or
-yarn add torph-native
+yarn add torph-reactnative
 ```
 
-`torph-native` has no native code of its own. It needs these peer dependencies, which most apps already have:
+`torph-reactnative` has no native code of its own. It needs these peer dependencies, which most apps already have:
 
 | Peer | Version |
 | --- | --- |
@@ -57,13 +57,13 @@ If Reanimated isn't set up yet, follow its [installation guide](https://docs.swm
 
 ```sh
 npx expo install react-native-reanimated react-native-worklets
-# only for torph-native/icons and torph-native/chart:
+# only for torph-reactnative/icons and torph-reactnative/chart:
 npx expo install react-native-svg
 ```
 
 | Optional peer | Version | Needed for |
 | --- | --- | --- |
-| `react-native-svg` | ≥ 15 | `torph-native/icons`, `torph-native/chart` |
+| `react-native-svg` | ≥ 15 | `torph-reactnative/icons`, `torph-reactnative/chart` |
 
 ---
 
@@ -74,7 +74,7 @@ npx expo install react-native-svg
 ```tsx
 import { useState } from "react";
 import { Pressable } from "react-native";
-import { TextMorph } from "torph-native";
+import { TextMorph } from "torph-reactnative";
 
 const LABELS = ["Continue", "Confirm", "Confirmed"];
 
@@ -148,7 +148,7 @@ Pass spring parameters as `ease` for physics-based motion. A spring keeps its ve
 | `mass` | `1` | Mass |
 | `precision` | `0.001` | How close to rest counts as settled |
 
-A spring sets its own duration. `torph-native` works out how long the spring takes to settle and times the fades from that.
+A spring sets its own duration. `torph-reactnative` works out how long the spring takes to settle and times the fades from that.
 
 ### Custom easing
 
@@ -188,7 +188,7 @@ Amount fields shrink as the number grows. Set `maxWidth` and the whole value sca
 
 ### Emoji
 
-Emoji morph like any other character, and multi-code-point emoji stay whole: families (👨‍👩‍👧), skin tones (👍🏽), flags (🇮🇳) and keycaps (1️⃣). This holds even on engines without `Intl.Segmenter`, because `torph-native` has its own grapheme splitter.
+Emoji morph like any other character, and multi-code-point emoji stay whole: families (👨‍👩‍👧), skin tones (👍🏽), flags (🇮🇳) and keycaps (1️⃣). This holds even on engines without `Intl.Segmenter`, because `torph-reactnative` has its own grapheme splitter.
 
 ```tsx
 <TextMorph>{tooMuch ? "Still not enough ETH 😳" : "Not enough ETH"}</TextMorph>
@@ -203,7 +203,7 @@ Emoji morph like any other character, and multi-code-point emoji stay whole: fam
 Swaps one small view for another. The outgoing one scales down and fades while the incoming one springs up from 0.6. It works with icons from any library, emoji, or images, and a swap can be interrupted.
 
 ```tsx
-import { IconSwap } from "torph-native";
+import { IconSwap } from "torph-reactnative";
 
 <IconSwap swapKey={muted ? "off" : "on"} variant="scale">
   {muted ? <BellOff /> : <Bell />}
@@ -215,7 +215,7 @@ import { IconSwap } from "torph-native";
 ### `IconMorph`: any icon into any icon
 
 ```tsx
-import { IconMorph, circlePath, rectPath } from "torph-native/icons";
+import { IconMorph, circlePath, rectPath } from "torph-reactnative/icons";
 
 <IconMorph d={open ? ["M6 6l12 12", "M18 6L6 18"] : ["M4 6h16", "M4 12h16", "M4 18h16"]} />
 ```
@@ -306,7 +306,7 @@ The current step's dash stretches and takes the accent colour.
 ### `LineChartMorph`
 
 ```tsx
-import { LineChartMorph } from "torph-native/chart";
+import { LineChartMorph } from "torph-reactnative/chart";
 
 <LineChartMorph data={series[range]} width={340} height={150} color={up ? "#16A34A" : "#FF3B30"} />
 ```
@@ -359,7 +359,7 @@ When the list reorders, regroups or reflows, each item springs to its new place.
 The diff engine is exported too, so you can build another renderer on the same morph logic (for example with Skia or SVG):
 
 ```ts
-import { segmentText, diffSegments, planFrame, layoutSegments } from "torph-native";
+import { segmentText, diffSegments, planFrame, layoutSegments } from "torph-reactnative";
 
 const before = segmentText("Continue", "en");
 const { segments, splits } = diffSegments(before, "Confirm", "en");
@@ -398,7 +398,7 @@ The timing shares are torph's. Under reduced motion, nothing moves: the old valu
 
 ## Differences from torph
 
-| | torph (web) | torph-native |
+| | torph (web) | torph-reactnative |
 | --- | --- | --- |
 | Rendering | DOM spans plus FLIP: measure, change, measure again, invert | Calculated positions plus shared values; nothing is measured after rendering |
 | Springs | Converted to a CSS `linear()` easing | Real Reanimated springs that keep their velocity when interrupted |
@@ -414,7 +414,7 @@ The timing shares are torph's. Under reduced motion, nothing moves: the old valu
 - **Kerning and ligatures.** Each character is its own `Text`, so kerning between them is lost (torph has the same trade-off). The difference is invisible in most UI fonts. Script fonts and scripts that join their letters, such as Arabic, won't render correctly while split into characters.
 - **Left-to-right only.** Right-to-left layout isn't handled yet.
 - **Reduced motion is read once.** Reanimated's `useReducedMotion` reads the setting when the component mounts, so a change made while the app is running takes effect on the next mount.
-- **`Intl.Segmenter`.** Where Hermes doesn't provide it, `torph-native` uses its own grapheme splitter. That covers emoji sequences, combining accents and Devanagari signs, but not every Unicode rule. For other complex scripts, add a polyfill such as `@formatjs/intl-segmenter`.
+- **`Intl.Segmenter`.** Where Hermes doesn't provide it, `torph-reactnative` uses its own grapheme splitter. That covers emoji sequences, combining accents and Devanagari signs, but not every Unicode rule. For other complex scripts, add a polyfill such as `@formatjs/intl-segmenter`.
 - **`IconMorph` draws polylines.** Each stroke becomes 40 points by default, so very large icons with tight curves may need a higher `samples` value.
 - **Not built yet:** moving an element between screens (Family's card and NFT hand-offs). `MorphBox` covers the same-screen version.
 - **The first frame shows plain text.** Before any glyph has been measured, the value renders as a normal `Text` in the same place, then switches to glyphs once the widths are known. Morphing starts from the second value on.
@@ -428,7 +428,7 @@ This is a pnpm workspace.
 ```
 apps/example/        Expo SDK 58 gallery recreating the Family Values videos
 packages/
-  torph-native/
+  torph-reactnative/
     src/core/        segmentation, diff and graphemes (diff copied from torph)
     src/plan.ts      text layout and animation planning (pure, unit tested)
     src/TextMorph.tsx, Glyph.tsx
@@ -445,7 +445,7 @@ pnpm typecheck
 pnpm build       # emits lib/
 ```
 
-To try it, run the demo app: `pnpm install`, then `pnpm --filter torph-native-example start`, and scan the QR code with Expo Go (SDK 58). Metro reads the library's TypeScript source through the `react-native` field, so you don't need to build first.
+To try it, run the demo app: `pnpm install`, then `pnpm --filter torph-reactnative-example start`, and scan the QR code with Expo Go (SDK 58). Metro reads the library's TypeScript source through the `react-native` field, so you don't need to build first.
 
 ---
 

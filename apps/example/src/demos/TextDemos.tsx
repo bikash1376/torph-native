@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
-import { IconSwap, StepIndicator, TextMorph } from "torph-native";
-import { ProgressCheck } from "torph-native/icons";
+import { IconSwap, StepIndicator, TextMorph } from "torph-reactnative";
+import { ProgressCheck } from "torph-reactnative/icons";
 import { C, Chip, PillButton, Section } from "../ui";
 
 const STEPS = [

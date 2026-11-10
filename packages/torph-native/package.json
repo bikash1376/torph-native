@@ -1,5 +1,5 @@
 {
-  "name": "torph-native",
+  "name": "torph-reactnative",
   "version": "0.1.0",
   "description": "Morphing UI for React Native: text, numbers, emoji, icons, trays and charts. Text engine ported from torph; built on Reanimated.",
   "license": "MIT",
@@ -36,7 +36,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm test && pnpm typecheck && pnpm build"
   },
   "keywords": [
     "react-native",
@@ -72,5 +73,17 @@
     "react-native-svg": {
       "optional": true
     }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bikash1376/torph-native.git",
+    "directory": "packages/torph-native"
+  },
+  "homepage": "https://github.com/bikash1376/torph-native#readme",
+  "bugs": {
+    "url": "https://github.com/bikash1376/torph-native/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

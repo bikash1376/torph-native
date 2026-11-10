@@ -1,5 +1,5 @@
-// torph-native example: a gallery recreating the motion in Benji Taylor's "Family Values"
-// with nothing but torph-native components. Each section names the videos it follows.
+// torph-reactnative example: a gallery recreating the motion in Benji Taylor's "Family Values"
+// with nothing but torph-reactnative components. Each section names the videos it follows.
 import { StatusBar } from "expo-status-bar";
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { ChartDemo, ReorderDemo } from "./src/demos/DataDemos";
@@ -24,7 +24,7 @@ export default function App() {
     <View style={styles.screen}>
       <StatusBar style="dark" />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.kicker}>torph-native</Text>
+        <Text style={styles.kicker}>torph-reactnative</Text>
         <Text style={styles.heading}>Family values, in React Native</Text>
         <Text style={styles.lede}>
           Text, number, emoji and icon morphs, trays, charts and layout — every demo below is built

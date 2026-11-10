@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { IconSwap, TextMorph, type IconSwapVariant } from "torph-native";
+import { IconSwap, TextMorph, type IconSwapVariant } from "torph-reactnative";
 import {
   CheckCircle,
   ChevronIcon,
@@ -16,7 +16,7 @@ import {
   circlePath,
   rectPath,
   type ProgressState,
-} from "torph-native/icons";
+} from "torph-reactnative/icons";
 import { C, Chip, Section } from "../ui";
 
 function Cell({ label, onPress, children }: { label: string; onPress: () => void; children: ReactNode }) {
