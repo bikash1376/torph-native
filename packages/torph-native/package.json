@@ -1,0 +1,54 @@
+{
+  "name": "torph-native",
+  "version": "0.1.0",
+  "description": "Animated text morphing for React Native. A port of torph, powered by Reanimated.",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "react-native": "src/index.ts",
+  "source": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "react-native": "./src/index.ts",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "lib",
+    "!**/__tests__",
+    "LICENSE",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "react-native",
+    "reanimated",
+    "text",
+    "morph",
+    "animation",
+    "torph"
+  ],
+  "peerDependencies": {
+    "react": ">=18",
+    "react-native": ">=0.74",
+    "react-native-reanimated": ">=3.6"
+  },
+  "devDependencies": {
+    "@torph/test-cases": "workspace:*",
+    "@types/react": "~19.3.0",
+    "react": "19.3.0",
+    "react-native": "0.88.1",
+    "react-native-reanimated": "4.7.1",
+    "react-native-worklets": "0.13.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}

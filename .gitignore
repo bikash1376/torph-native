@@ -1,0 +1,12 @@
+node_modules/
+lib/
+*.log
+.DS_Store
+.expo/
+dist/
+web-build/
+*.tsbuildinfo
+# Local agent tooling
+.agents/
+.claude/
+skills-lock.json
