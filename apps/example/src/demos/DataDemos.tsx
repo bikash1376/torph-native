@@ -69,7 +69,12 @@ export function ReorderDemo() {
     setStarred((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
   return (
-    <Section title="Reorder" videos="30 · 31 · 43" note="Star a token: it moves up and the others make room.">
+    <Section
+      title="Reorder"
+      videos="30 · 31 · 43"
+      note="Star a token: it moves up and the others make room. Rows glide without overshooting and stay inside the card."
+      style={{ overflow: "hidden" }}
+    >
       {ordered.map((t) => (
         <MorphItem key={t.id} style={styles.tokenRow}>
           <View style={[styles.avatar, { backgroundColor: t.color }]}>

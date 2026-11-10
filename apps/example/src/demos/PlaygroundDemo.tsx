@@ -9,6 +9,7 @@ const PHRASES = [
   "Sending money",
   "Money sent",
   "Swap approved\nWaiting for confirmation",
+  "Your Secret Recovery Phrase is the key used to back up your wallet",
   "Speed Up\nTrying to Speed Up",
   "Hello world",
 ];
@@ -48,6 +49,7 @@ export function PlaygroundDemo() {
       <Pressable onPress={() => setI((n) => (n + 1) % PHRASES.length)} style={styles.stage}>
         <TextMorph
           style={[styles.phrase, { textAlign: align }]}
+          wrap
           containerStyle={{ alignSelf: align === "left" ? "flex-start" : align === "right" ? "flex-end" : "center" }}
           ease={EASES[ease]}
           duration={duration}
@@ -94,7 +96,7 @@ export function PlaygroundDemo() {
 
       <Text style={styles.group}>numbers · locale · decimals</Text>
       <Pressable onPress={() => setValue((v) => Math.round((v + Math.random() * 900 - 300) * 100) / 100)} style={styles.stage}>
-        <TextMorph style={styles.number} numbers={numbers} locale={locale} decimals={2}>
+        <TextMorph style={styles.number} maxWidth="auto" numbers={numbers} locale={locale} decimals={2}>
           {value}
         </TextMorph>
       </Pressable>

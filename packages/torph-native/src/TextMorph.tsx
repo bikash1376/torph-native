@@ -73,9 +73,17 @@ export interface TextMorphProps {
   animateSize?: boolean;
   /**
    * Shrink the whole value to stay within this width, as amount inputs do when a
-   * number grows. The scale eases with the morph.
+   * number grows. The scale eases with the morph. `"auto"` uses the width available
+   * to the component (it stretches across its parent to find out).
    */
-  maxWidth?: number;
+  maxWidth?: number | "auto";
+  /**
+   * Break lines at spaces to fit the width available, like a normal Text. Words that
+   * move to another line morph there. The component stretches across its parent to
+   * measure that width, so use it where the parent lays children out in a column.
+   * Default false: lines break only at "\n", as in torph.
+   */
+  wrap?: boolean;
   /** Caret position, for values being typed: matches by position instead of place value. */
   cursorIndex?: number;
   /** Render plain text with no animation. */
@@ -247,6 +255,15 @@ function MorphText(props: InnerProps) {
   const [plan, setPlan] = useState<FramePlan | null>(null);
   const [missing, setMissing] = useState<string[]>([]);
   const missingRef = useRef<string[]>([]);
+  const measureNodes = useRef(new Map<string, unknown>());
+
+  // Wrapping and auto-fit both need the width the component may use.
+  const needsWidth = props.wrap === true || props.maxWidth === "auto";
+  const [available, setAvailable] = useState<number | null>(null);
+  const availableRef = useRef<number | null>(null);
+  availableRef.current = available;
+  const wrapWidth = props.wrap && available !== null ? available : undefined;
+  const fitWidth = props.maxWidth === "auto" ? (available ?? undefined) : props.maxWidth;
 
   // Read at commit time, so the commit callback never goes stale.
   const latest = useRef(props);
@@ -275,6 +292,8 @@ function MorphText(props: InnerProps) {
     const isNumbers = current.numbers !== false;
     const loc = current.locale ?? "en";
     const prev = committed.current;
+    // Lay out once, at the right width: never wrap first and re-wrap a frame later.
+    if (current.wrap && availableRef.current === null) return;
 
     const { segments, splits } =
       prev.segments.length > 0
@@ -302,6 +321,7 @@ function MorphText(props: InnerProps) {
       measure: (s) => widths.current.get(s) ?? 0,
       lineHeight: lineHeight.current!,
       align: current.align,
+      wrapWidth: current.wrap ? (availableRef.current ?? undefined) : undefined,
     });
     committed.current = { plan: next, segments };
     setPlan(next);
@@ -336,22 +356,51 @@ function MorphText(props: InnerProps) {
     }
   }, [requestMeasure]);
 
+  const record = useCallback((value: string, width: number, height: number) => {
+    widths.current.set(value, value === LINE_PROBE ? 0 : width);
+    if (value === LINE_PROBE) {
+      // An invisible character is exactly one line tall in the current font.
+      const fontSize = latest.current.textStyle.fontSize ?? 14;
+      lineHeight.current = height > 0 ? height : fontSize * 1.2;
+    }
+  }, []);
+
+  const measuredAll = () =>
+    lineHeight.current !== null && missingRef.current.every((s) => widths.current.has(s));
+
+  // Fallback path: layout events arrive a frame or more after the measurer renders.
   const onMeasured = useCallback(
     (value: string, event: LayoutChangeEvent) => {
+      // Already measured synchronously and committed: nothing left to do.
+      if (missingRef.current.length === 0) return;
       const { width, height } = event.nativeEvent.layout;
-      widths.current.set(value, value === LINE_PROBE ? 0 : width);
-      if (value === LINE_PROBE) {
-        // An invisible character is exactly one line tall in the current font.
-        const fontSize = latest.current.textStyle.fontSize ?? 14;
-        lineHeight.current = height > 0 ? height : fontSize * 1.2;
-      }
-      const done =
-        lineHeight.current !== null &&
-        missingRef.current.every((s) => widths.current.has(s));
-      if (done) commit();
+      record(value, width, height);
+      if (measuredAll()) commit();
     },
-    [commit],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [commit, record],
   );
+
+  // Fast path: on the New Architecture, layout is readable synchronously in a layout
+  // effect, so new words are measured and morphing in the same frame they appear.
+  useLayoutEffect(() => {
+    if (missing.length === 0) return;
+    for (const value of missing) {
+      const node = measureNodes.current.get(value) as
+        | { getBoundingClientRect?: () => { width: number; height: number } }
+        | undefined;
+      const rect = node?.getBoundingClientRect?.();
+      if (!rect || (rect.width === 0 && rect.height === 0 && value !== LINE_PROBE)) return;
+      record(value, rect.width, rect.height);
+    }
+    if (measuredAll()) commit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [missing]);
+
+  const onBoxLayout = useCallback((event: LayoutChangeEvent) => {
+    const width = event.nativeEvent.layout.width;
+    setAvailable((prev) => (prev !== null && Math.abs(prev - width) < 0.5 ? prev : width));
+  }, []);
 
   // New fonts mean new widths: drop every measurement and lay out again without a morph.
   const lastMetrics = useRef(metricsKey);
@@ -368,7 +417,7 @@ function MorphText(props: InnerProps) {
   // A layout effect, so a value whose widths are all known commits before paint.
   useLayoutEffect(() => {
     commit();
-  }, [text, cursorIndex, align, numbers, locale, commit]);
+  }, [text, cursorIndex, align, numbers, locale, wrapWidth, commit]);
 
   const measurer =
     missing.length > 0 ? (
@@ -376,6 +425,10 @@ function MorphText(props: InnerProps) {
         {missing.map((value) => (
           <Text
             key={value}
+            ref={(node) => {
+              if (node) measureNodes.current.set(value, node);
+              else measureNodes.current.delete(value);
+            }}
             style={textStyle}
             numberOfLines={1}
             allowFontScaling={allowFontScaling}
@@ -388,10 +441,20 @@ function MorphText(props: InnerProps) {
       </View>
     ) : null;
 
+  // Wrap or auto-fit: an outer box stretched across the parent reports the width to use.
+  const withBox = (node: ReactNode) =>
+    needsWidth ? (
+      <View style={styles.box} onLayout={onBoxLayout}>
+        {node}
+      </View>
+    ) : (
+      node
+    );
+
   if (!plan) {
     // First paint, before any width is known: plain text in the same place.
-    return (
-      <View style={props.containerStyle} {...a11y(props)}>
+    return withBox(
+      <View style={[props.containerStyle, available !== null && { maxWidth: available }]} {...a11y(props)}>
         <Text
           style={[textStyle, { textAlign: align }]}
           allowFontScaling={allowFontScaling}
@@ -400,16 +463,16 @@ function MorphText(props: InnerProps) {
           {text}
         </Text>
         {measurer}
-      </View>
+      </View>,
     );
   }
 
-  return (
+  return withBox(
     <MorphFrame
       plan={plan}
       motion={motion}
       animateSize={props.animateSize !== false}
-      maxWidth={props.maxWidth}
+      maxWidth={fitWidth}
       style={props.containerStyle}
       overlay={measurer}
       {...a11y(props)}
@@ -429,7 +492,7 @@ function MorphText(props: InnerProps) {
           />
         ),
       )}
-    </MorphFrame>
+    </MorphFrame>,
   );
 }
 
@@ -577,6 +640,9 @@ const overlayAlign = {
 const styles = StyleSheet.create({
   frame: {
     overflow: "visible",
+  },
+  box: {
+    alignSelf: "stretch",
   },
   layer: {
     position: "absolute",

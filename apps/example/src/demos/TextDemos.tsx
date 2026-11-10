@@ -18,8 +18,10 @@ export function FlowTitleDemo() {
   return (
     <Section title="Flow titles" videos="03 · 21 · 36" note="The title morphs letter by letter, the step dashes stretch to the current step.">
       <StepIndicator count={STEPS.length} index={step} style={{ alignSelf: "center", marginBottom: 20 }} />
-      <TextMorph style={styles.flowTitle}>{STEPS[step]!.title}</TextMorph>
-      <TextMorph style={styles.flowBody} containerStyle={{ marginTop: 6 }}>
+      <TextMorph style={styles.flowTitle} wrap>
+        {STEPS[step]!.title}
+      </TextMorph>
+      <TextMorph style={styles.flowBody} wrap containerStyle={{ marginTop: 6 }}>
         {STEPS[step]!.body}
       </TextMorph>
       <View style={styles.row}>
@@ -84,11 +86,11 @@ export function EmptyStateDemo() {
           <Chip key={t} label={t} active={tab === t} onPress={() => setTab(t)} />
         ))}
       </View>
-      <TextMorph style={styles.emptyTitle} containerStyle={{ alignSelf: "center" }}>
+      <TextMorph style={styles.emptyTitle} wrap containerStyle={{ alignSelf: "center" }}>
         {TABS[tab].title}
       </TextMorph>
-      <TextMorph style={styles.emptyBody} containerStyle={{ alignSelf: "center", marginTop: 6 }}>
-        {TABS[tab].body.replace(" or buy", "\nor buy").replace(" they'll", "\nthey'll")}
+      <TextMorph style={styles.emptyBody} wrap containerStyle={{ alignSelf: "center", marginTop: 6 }}>
+        {TABS[tab].body}
       </TextMorph>
     </Section>
   );
@@ -105,7 +107,7 @@ const ETH_PRICE = 3319.38;
 const BALANCE = 705.358 * ETH_PRICE;
 
 /** Videos 39 · 40: amount entry — digits roll into place, commas arrive, the value shrinks to fit, and the warning morphs. */
-export function AmountDemo({ width }: { width: number }) {
+export function AmountDemo() {
   const [raw, setRaw] = useState("100");
   const value = Number(raw || "0");
   const eth = (value / ETH_PRICE).toFixed(8).replace(/\.?0+$/, "") || "0";
@@ -125,7 +127,7 @@ export function AmountDemo({ width }: { width: number }) {
   return (
     <Section title="Amount entry" videos="39 · 40" note="Type a big number: digits roll by place value and the amount scales down to fit." dark>
       <View style={{ alignItems: "center", paddingTop: 12, height: 150 }}>
-        <TextMorph style={styles.amount} maxWidth={width - 48} containerStyle={{ alignSelf: "center" }}>
+        <TextMorph style={styles.amount} maxWidth="auto" containerStyle={{ alignSelf: "center" }}>
           {`$${formatAmount(raw)}`}
         </TextMorph>
         <TextMorph style={[styles.eth, warning ? styles.warning : null]} containerStyle={{ marginTop: 6 }}>
@@ -142,6 +144,8 @@ export function AmountDemo({ width }: { width: number }) {
     </Section>
   );
 }
+
+const MAX_DIGITS = 12;
 
 /** Where `digitsBefore` digits have passed in `formatted` — the caret's place once commas are added. */
 function caretInFormatted(formatted: string, digitsBefore: number): number {
@@ -166,17 +170,21 @@ export function TypingDemo() {
     <Section
       title="Typing"
       videos="cursorIndex"
-      note="Insert or delete digits anywhere: commas regroup, and the change morphs at your caret."
+      note="Insert or delete digits anywhere (up to 12): commas regroup, the change morphs at your caret, and the amount shrinks to stay inside the card."
     >
       <TextInput
         value={digits}
-        onChangeText={(text) => setDigits(text.replace(/\D/g, "").replace(/^0+(?=\d)/, ""))}
+        maxLength={MAX_DIGITS}
+        onChangeText={(text) =>
+          setDigits(text.replace(/\D/g, "").replace(/^0+(?=\d)/, "").slice(0, MAX_DIGITS))
+        }
         onSelectionChange={(e) => setCaret(e.nativeEvent.selection.end)}
         keyboardType="number-pad"
         style={styles.input}
       />
       <TextMorph
         style={styles.typed}
+        maxWidth="auto"
         cursorIndex={caret === undefined ? undefined : caretInFormatted(display, caret)}
         containerStyle={{ marginTop: 12 }}
       >

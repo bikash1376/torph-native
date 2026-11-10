@@ -65,6 +65,36 @@ describe("layoutSegments", () => {
     expect(placed.find((g) => g.string === "ef")!.x).toBe(20);
   });
 
+  it("wraps at spaces to stay within wrapWidth, keeping words whole", () => {
+    // "aa bb cc": words 20 wide, spaces 10. 50 fits "aa bb", not "aa bb cc".
+    const { placed, width, height } = layoutSegments(
+      segmentText("aa bb cc", "en"),
+      measure,
+      LINE,
+      "left",
+      50,
+    );
+    expect(height).toBe(LINE * 2);
+    expect(width).toBe(50);
+    expect(placed.find((g) => g.string === "cc")).toMatchObject({ x: 0, y: LINE });
+  });
+
+  it("leaves a trailing space out of a wrapped line's width when centring", () => {
+    const { placed } = layoutSegments(segmentText("aa bb cc", "en"), measure, LINE, "center", 50);
+    // Line 2 ("cc", 20 wide) centres within the 50-wide first line.
+    expect(placed.find((g) => g.string === "cc")!.x).toBe(15);
+  });
+
+  it("gives a word wider than wrapWidth a line of its own", () => {
+    const { placed } = layoutSegments(segmentText("a abcdefgh b", "en"), measure, LINE, "left", 40);
+    expect(placed.find((g) => g.string === "abcdefgh")).toMatchObject({ x: 0, y: LINE });
+    expect(placed.find((g) => g.string === "b")).toMatchObject({ x: 0, y: LINE * 2 });
+  });
+
+  it("does not wrap without a wrapWidth", () => {
+    expect(layoutSegments(segmentText("aa bb cc", "en"), measure, LINE).height).toBe(LINE);
+  });
+
   it("gives an empty value one line of height and no width", () => {
     expect(layoutSegments([], measure, LINE)).toMatchObject({ width: 0, height: LINE });
   });

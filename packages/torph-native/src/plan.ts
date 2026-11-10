@@ -55,39 +55,82 @@ export function isWhitespace(value: string): boolean {
   return value === " " || value === " " || value === "​";
 }
 
-/** Places segments on lines. The root never wraps: a line exists only where the value put one. */
+/**
+ * Places segments on lines. Lines break at every newline in the value and, when
+ * `wrapWidth` is given, before any word that would run past it. Spaces stay at the
+ * end of the line they ended and are left out of its width, so wrapped lines align
+ * cleanly. A single word wider than `wrapWidth` keeps its own line and overflows.
+ */
 export function layoutSegments(
   segments: Segment[],
   measure: (value: string) => number,
   lineHeight: number,
   align: Align = "left",
+  wrapWidth?: number,
 ): { placed: Placed[]; width: number; height: number } {
   const lines: Placed[][] = [[]];
-  const lineWidths: number[] = [0];
+  /** Pen position per line, trailing spaces included. */
+  const pens: number[] = [0];
+  /** Visible width per line: up to the end of its last non-space glyph. */
+  const inks: number[] = [0];
 
-  for (const segment of segments) {
-    if (segment.string === "\n") {
-      lines.push([]);
-      lineWidths.push(0);
-      continue;
-    }
+  const newLine = () => {
+    lines.push([]);
+    pens.push(0);
+    inks.push(0);
+  };
+  const place = (segment: Segment, width: number) => {
     const line = lines.length - 1;
-    const width = measure(segment.string);
     lines[line]!.push({
       id: segment.id,
       string: segment.string,
       kind: segment.kind,
       width,
-      x: lineWidths[line]!,
+      x: pens[line]!,
       y: line * lineHeight,
     });
-    lineWidths[line]! += width;
+    pens[line]! += width;
+    if (!isWhitespace(segment.string)) inks[line] = pens[line]!;
+  };
+
+  let i = 0;
+  while (i < segments.length) {
+    const segment = segments[i]!;
+    if (segment.string === "\n") {
+      newLine();
+      i++;
+      continue;
+    }
+    if (isWhitespace(segment.string)) {
+      place(segment, measure(segment.string));
+      i++;
+      continue;
+    }
+    // A word: every segment up to the next space or newline, placed as one unit.
+    let end = i;
+    let wordWidth = 0;
+    while (end < segments.length) {
+      const s = segments[end]!;
+      if (s.string === "\n" || isWhitespace(s.string)) break;
+      wordWidth += measure(s.string);
+      end++;
+    }
+    const line = lines.length - 1;
+    if (
+      wrapWidth !== undefined &&
+      inks[line]! > 0 &&
+      pens[line]! + wordWidth > wrapWidth + 0.5
+    ) {
+      newLine();
+    }
+    for (let k = i; k < end; k++) place(segments[k]!, measure(segments[k]!.string));
+    i = end;
   }
 
-  const width = Math.max(0, ...lineWidths);
+  const width = Math.max(0, ...inks);
   const placed: Placed[] = [];
-  lines.forEach((line, i) => {
-    const slack = width - lineWidths[i]!;
+  lines.forEach((line, n) => {
+    const slack = width - inks[n]!;
     const offset = align === "center" ? slack / 2 : align === "right" ? slack : 0;
     for (const glyph of line) placed.push({ ...glyph, x: glyph.x + offset });
   });
@@ -155,12 +198,14 @@ export interface PlanInput {
   measure: (value: string) => number;
   lineHeight: number;
   align?: Align;
+  /** Break lines at spaces to stay within this width. */
+  wrapWidth?: number;
 }
 
 export function planFrame(input: PlanInput): FramePlan {
-  const { prev, segments, splits, measure, lineHeight, align = "left" } = input;
+  const { prev, segments, splits, measure, lineHeight, align = "left", wrapWidth } = input;
   const frame = (prev?.frame ?? 0) + 1;
-  const layout = layoutSegments(segments, measure, lineHeight, align);
+  const layout = layoutSegments(segments, measure, lineHeight, align, wrapWidth);
 
   if (!prev) {
     return {

@@ -162,9 +162,11 @@ export function EmojiDemo() {
           <Chip key={v} label={v} active={variant === v} onPress={() => setVariant(v)} />
         ))}
       </View>
-      <Pressable onPress={() => setMood((m) => (m + 1) % moods.length)} style={{ marginTop: 18, alignItems: "center" }}>
-        <TextMorph style={styles.moodText}>{moods[mood]!}</TextMorph>
-        <Text style={styles.hint}>tap the line</Text>
+      <Pressable onPress={() => setMood((m) => (m + 1) % moods.length)} style={{ marginTop: 18 }}>
+        <TextMorph style={[styles.moodText, { textAlign: "center" }]} wrap containerStyle={{ alignSelf: "center" }}>
+          {moods[mood]!}
+        </TextMorph>
+        <Text style={[styles.hint, { textAlign: "center" }]}>tap the line</Text>
       </Pressable>
     </Section>
   );

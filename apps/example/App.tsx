@@ -34,7 +34,7 @@ export default function App() {
         <Text style={styles.chapter}>Text</Text>
         <ButtonLabelDemo />
         <FlowTitleDemo />
-        <AmountDemo width={inner} />
+        <AmountDemo />
         <EmptyStateDemo />
         <TypingDemo />
         <PlaygroundDemo />
