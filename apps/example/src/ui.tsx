@@ -1,5 +1,13 @@
 import type { ReactNode } from "react";
-import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from "react-native";
 
 export const C = {
   bg: "#FFFFFF",
@@ -16,32 +24,63 @@ export const C = {
   nightLine: "#2C2C2E",
 };
 
-export const PAGE = 20;
+/** Side margin of every screen. */
+export const PAGE = 24;
 
+/** One full-width page of the pager: a title, an optional sentence, and the demo centred below. */
+export function Screen({
+  title,
+  subtitle,
+  width,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  width: number;
+  children: ReactNode;
+}) {
+  return (
+    <View style={{ width, flex: 1 }}>
+      <ScrollView
+        contentContainerStyle={styles.screen}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.title}>{title}</Text>
+        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        <View style={styles.stage}>{children}</View>
+      </ScrollView>
+    </View>
+  );
+}
+
+/** A rounded panel for demos that need a surface behind them. */
+export function Card({ children, dark, style }: { children: ReactNode; dark?: boolean; style?: StyleProp<ViewStyle> }) {
+  return <View style={[styles.card, dark && styles.darkCard, style]}>{children}</View>;
+}
+
+/** Earlier gallery sections (kept in demos/unused) still use this. */
 export function Section({
   title,
-  videos,
   note,
   children,
   dark,
   style,
 }: {
   title: string;
-  /** Which Family videos the demo recreates. */
-  videos: string;
+  videos?: string;
   note?: string;
   children: ReactNode;
   dark?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
   return (
-    <View style={styles.section}>
-      <View style={styles.heading}>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.videos}>{videos}</Text>
-      </View>
-      {note ? <Text style={styles.note}>{note}</Text> : null}
-      <View style={[styles.card, dark && styles.darkCard, style]}>{children}</View>
+    <View style={{ marginBottom: 36 }}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {note ? <Text style={styles.subtitle}>{note}</Text> : null}
+      <Card dark={dark} style={style}>
+        {children}
+      </Card>
     </View>
   );
 }
@@ -106,30 +145,30 @@ export function PillButton({
 }
 
 const styles = StyleSheet.create({
-  section: { marginBottom: 36 },
-  heading: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", marginBottom: 4 },
-  title: { fontSize: 20, fontWeight: "700", color: C.ink, letterSpacing: -0.3 },
-  videos: { fontSize: 12, color: C.muted, fontWeight: "500" },
-  note: { fontSize: 13, color: C.muted, marginBottom: 12, lineHeight: 18 },
-  card: { backgroundColor: C.card, borderRadius: 28, padding: 16, marginTop: 8 },
+  screen: { flexGrow: 1, paddingHorizontal: PAGE, paddingTop: 88, paddingBottom: 96 },
+  title: { fontSize: 32, fontWeight: "800", color: C.ink, letterSpacing: -0.8 },
+  subtitle: { fontSize: 16, color: C.muted, lineHeight: 22, marginTop: 6 },
+  stage: { flex: 1, justifyContent: "center", paddingVertical: 24 },
+  sectionTitle: { fontSize: 20, fontWeight: "700", color: C.ink, letterSpacing: -0.3 },
+  card: { backgroundColor: C.card, borderRadius: 28, padding: 16 },
   darkCard: { backgroundColor: C.night },
   chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingHorizontal: 13,
+    paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: C.card,
   },
   chipDark: { backgroundColor: C.nightCard },
   chipActive: { backgroundColor: C.ink },
   chipActiveDark: { backgroundColor: "#FFFFFF" },
   chipText: { fontSize: 13, fontWeight: "600", color: C.ink },
   pill: {
-    height: 52,
+    height: 54,
     borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
     gap: 8,
-    paddingHorizontal: 20,
+    paddingHorizontal: 22,
   },
 });

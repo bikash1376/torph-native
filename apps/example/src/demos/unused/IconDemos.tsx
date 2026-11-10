@@ -17,7 +17,7 @@ import {
   rectPath,
   type ProgressState,
 } from "torph-reactnative/icons";
-import { C, Chip, Section } from "../ui";
+import { C, Chip, Section } from "../../ui";
 
 function Cell({ label, onPress, children }: { label: string; onPress: () => void; children: ReactNode }) {
   return (

@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { MorphItem, TextMorph } from "torph-reactnative";
 import { LineChartMorph } from "torph-reactnative/chart";
 import { StarIcon } from "torph-reactnative/icons";
-import { C, Chip, Section } from "../ui";
+import { C, Chip, Section } from "../../ui";
 
 // Deterministic pseudo-random series, so every range always draws the same line.
 function series(seed: number, count: number, volatility: number, drift: number): number[] {

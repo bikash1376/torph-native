@@ -1,6 +1,6 @@
 {
   "name": "torph-reactnative",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Morphing UI for React Native: text, numbers, emoji, icons, trays and charts. Text engine ported from torph; built on Reanimated.",
   "license": "MIT",
   "main": "lib/index.js",

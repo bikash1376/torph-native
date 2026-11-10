@@ -14,8 +14,8 @@ export { MorphTray, TRAY_SPRING } from "./MorphTray";
 export type { MorphTrayProps } from "./MorphTray";
 export { MorphBox, BOX_SPRING } from "./MorphBox";
 export type { MorphBoxProps } from "./MorphBox";
-export { MorphItem } from "./MorphItem";
-export type { MorphItemProps } from "./MorphItem";
+export { MorphItem, MorphList } from "./MorphItem";
+export type { MorphItemProps, MorphListProps } from "./MorphItem";
 export { StepIndicator } from "./StepIndicator";
 export type { StepIndicatorProps } from "./StepIndicator";
 

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { MorphBox, MorphTray, TextMorph } from "torph-reactnative";
 import { LockIcon, PlusCloseIcon, ProgressCheck, type ProgressState } from "torph-reactnative/icons";
-import { C, PillButton, Section } from "../ui";
+import { C, PillButton, Section } from "../../ui";
 
 type Step = "options" | "key" | "phrase" | "remove";
 

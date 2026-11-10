@@ -1,23 +1,17 @@
 # torph-reactnative
 
-Morphing UI for React Native, built on Reanimated. It started as a port of [torph](https://github.com/lochie/torph) by Lochie Axon for text, and has grown to cover the rest of the motion in Benji Taylor's [Family Values](https://benji.org/family-values): icons, emoji, trays, charts and layout.
+Morphing UI components for React Native, built on [Reanimated](https://docs.swmansion.com/react-native-reanimated/).
 
-| Import | What it does |
-| --- | --- |
-| `TextMorph` | Text and numbers that morph letter by letter and digit by digit, and can shrink to fit |
-| `IconSwap` | Swaps one icon, emoji or small view for another with a replace transition |
-| `MorphTray` | A tray whose height follows its content as it moves from step to step |
-| `MorphBox` | A button that grows into a tray and shrinks back |
-| `StepIndicator` | Step dashes; the current one stretches |
-| `MorphItem` | List and grid items that glide to their new place when the order changes |
-| `torph-reactnative/icons` | `IconMorph` (any icon → any icon) plus ten animated icons |
-| `torph-reactnative/chart` | `LineChartMorph`: a line that redraws from one dataset into the next |
+Text that morphs letter by letter, numbers that roll digit by digit, icons that redraw themselves into other icons, buttons that grow into trays, charts that reshape between ranges, and lists that glide into their new order. Every animation runs on the UI thread and can be interrupted mid-flight.
 
-The icon and chart entry points need `react-native-svg`. Everything else needs only Reanimated.
+<!--
+  Demo video: open this README in the GitHub editor, drag your screen recording in,
+  and replace this comment with the link GitHub generates.
+-->
 
-## TextMorph
-
-When the text changes, characters the old and new values share slide to their new places. The rest fade out and in, and numbers roll by place value like an odometer. Use it for button labels (`Continue` → `Confirm`), status lines, counters, balances, and anything else that changes in place.
+```sh
+npm install torph-reactnative
+```
 
 ```tsx
 import { TextMorph } from "torph-reactnative";
@@ -27,11 +21,42 @@ import { TextMorph } from "torph-reactnative";
 </TextMorph>
 ```
 
-- **Same engine as torph.** The segmentation and diff code is copied from torph, along with its full test corpus, so `torph-reactnative` decides what morphs into what exactly the way torph does on the web.
-- **Runs on the UI thread.** Every glyph is driven by Reanimated shared values. Nothing animates through React state.
-- **No first-frame jump.** Positions are calculated from measured glyph widths before anything renders. Nothing is measured after the fact and corrected later.
-- **Interruptible.** If the value changes mid-morph, every glyph retargets from where it is on screen. Characters on their way out that come back reverse their exit.
-- **Handles reduced motion.** When the OS asks for reduced motion, the text crossfades with no movement.
+---
+
+## Contents
+
+- [What's inside](#whats-inside)
+- [Installation](#installation)
+- [TextMorph](#textmorph): text, numbers, typing, wrapping, shrink to fit, emoji
+- [IconSwap](#iconswap)
+- [IconMorph](#iconmorph): any icon into any icon
+- [Animated icons](#animated-icons)
+- [MorphBox](#morphbox): button to tray
+- [MorphTray](#morphtray)
+- [MorphList and MorphItem](#morphlist-and-morphitem): reordering
+- [LineChartMorph](#linechartmorph)
+- [StepIndicator](#stepindicator)
+- [Accessibility and reduced motion](#accessibility-and-reduced-motion)
+- [How TextMorph works](#how-textmorph-works)
+- [Limitations](#limitations)
+- [Example app](#example-app)
+- [Credits](#credits)
+
+---
+
+## What's inside
+
+| Import | Component | What it does |
+| --- | --- | --- |
+| `torph-reactnative` | `TextMorph` | Text that morphs letter by letter. Numbers roll by place value, lines can wrap, and the text can shrink to fit. |
+| | `IconSwap` | Swaps one icon, emoji or small view for another with a replace transition. |
+| | `MorphBox` | A button that grows into the tray it opens and shrinks back. |
+| | `MorphTray` | A tray whose height follows its content from step to step. |
+| | `MorphList`, `MorphItem` | Rows and cells that spring to their new place when the order changes. |
+| | `StepIndicator` | Step dashes; the current one stretches. |
+| `torph-reactnative/icons` | `IconMorph` | Morphs any SVG icon into any other. |
+| | 10 animated icons | Lock, progress → check, check circle, chevron, plus ↔ close, star, heart, trash, send, copy. |
+| `torph-reactnative/chart` | `LineChartMorph` | A line chart that redraws from one dataset into the next. |
 
 ---
 
@@ -45,162 +70,143 @@ pnpm add torph-reactnative
 yarn add torph-reactnative
 ```
 
-`torph-reactnative` has no native code of its own. It needs these peer dependencies, which most apps already have:
+The package has no native code of its own. It needs:
 
-| Peer | Version |
-| --- | --- |
-| `react` | ≥ 18 |
-| `react-native` | ≥ 0.74 |
-| `react-native-reanimated` | ≥ 3.6 (developed against 4.x) |
+| Peer dependency | Version | Needed for |
+| --- | --- | --- |
+| `react` | ≥ 18 | everything |
+| `react-native` | ≥ 0.74 | everything |
+| `react-native-reanimated` | ≥ 3.6 (built against 4.x) | everything |
+| `react-native-svg` | ≥ 15 | only `torph-reactnative/icons` and `torph-reactnative/chart` |
 
-If Reanimated isn't set up yet, follow its [installation guide](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/getting-started). On Reanimated 4 that means also installing `react-native-worklets` and adding its Babel plugin. In Expo:
+With Expo:
 
 ```sh
-npx expo install react-native-reanimated react-native-worklets
-# only for torph-reactnative/icons and torph-reactnative/chart:
-npx expo install react-native-svg
+npx expo install react-native-reanimated react-native-worklets react-native-svg
 ```
 
-| Optional peer | Version | Needed for |
-| --- | --- | --- |
-| `react-native-svg` | ≥ 15 | `torph-reactnative/icons`, `torph-reactnative/chart` |
+Without Expo, follow Reanimated's [installation guide](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/getting-started). On Reanimated 4 that includes `react-native-worklets` and its Babel plugin.
 
 ---
 
-## Usage
+## TextMorph
 
-### Text
+When the text changes, characters shared by the old and new values slide to their new places, and the rest fade out and in. Use it for button labels, status lines, titles, counters and balances.
 
 ```tsx
-import { useState } from "react";
-import { Pressable } from "react-native";
 import { TextMorph } from "torph-reactnative";
 
-const LABELS = ["Continue", "Confirm", "Confirmed"];
+const LABELS = ["Continue", "Confirm", "Confirming…", "Confirmed"];
 
-export function StepButton() {
-  const [step, setStep] = useState(0);
-
-  return (
-    <Pressable onPress={() => setStep((s) => (s + 1) % LABELS.length)}>
-      <TextMorph style={{ color: "white", fontSize: 17, fontWeight: "600" }}>
-        {LABELS[step]}
-      </TextMorph>
-    </Pressable>
-  );
-}
+<Pressable onPress={next}>
+  <TextMorph style={{ color: "white", fontSize: 17, fontWeight: "600" }}>
+    {LABELS[step]}
+  </TextMorph>
+</Pressable>
 ```
 
-`style` takes the usual text props: font, size, weight, color, letter spacing, line height, `textAlign`. Margins, backgrounds and anything else about the box itself go in `containerStyle`.
+`style` takes the usual text props: font, size, weight, colour, letter spacing, line height and `textAlign`. Margins, backgrounds and anything else about the box go in `containerStyle`.
 
 ### Numbers
 
-Words that contain numbers morph by place value. Digits slide vertically, and the symbols around them (currency signs, separators, signs, suffixes) move with the place they belong to. This is on by default.
+Words that contain numbers morph by place value. Digits roll vertically, and currency signs, separators and suffixes move with the place they belong to. `1,204` → `1,318` rolls the hundreds and tens and leaves the thousands alone.
 
 ```tsx
-// 1,204 → 1,318 rolls the hundreds and tens and leaves the thousands alone
-<TextMorph style={styles.balance}>{`$${total.toLocaleString("en")}`}</TextMorph>
+<TextMorph style={styles.balance}>{`$${total.toLocaleString("en-US")}`}</TextMorph>
 ```
 
-If you pass a number instead of a string, it's formatted for you using `locale` and `decimals`:
+If you pass a number instead of a string, `locale` and `decimals` format it for you:
 
 ```tsx
-<TextMorph decimals={2} locale="de-DE">
-  {1234.5}
-</TextMorph>
-// → 1.234,50
+<TextMorph locale="de-DE" decimals={2}>{1234.5}</TextMorph>  // 1.234,50
 ```
 
-Pass `numbers={false}` to use the character-level text morph for numbers too.
+Use `fontVariant: ["tabular-nums"]` so digits keep the same width as they change. Pass `numbers={false}` to morph numbers letter by letter instead.
 
-> Use `fontVariant: ["tabular-nums"]` for numbers that change often, so each digit keeps the same width as the value changes.
+### Typing
 
-### Editable fields
-
-Place-value matching suits values that change on their own, like counters, totals and readouts. It's wrong for a field someone is typing into: typing `1` in front of `20` should insert a digit, not renumber every place. Pass the caret position as `cursorIndex` to match by position instead:
+For text someone is typing, pass the caret position as `cursorIndex`. The morph then follows the caret: a typed digit slides in where it was typed instead of every place value shifting along.
 
 ```tsx
-const [value, setValue] = useState("");
+const [digits, setDigits] = useState("");
 const [caret, setCaret] = useState<number>();
 
+<TextMorph cursorIndex={caret} maxWidth="auto">{`$${format(digits)}`}</TextMorph>
 <TextInput
-  value={value}
-  onChangeText={setValue}
+  value={digits}
+  onChangeText={setDigits}
   onSelectionChange={(e) => setCaret(e.nativeEvent.selection.end)}
 />
-<TextMorph cursorIndex={caret}>{value}</TextMorph>
 ```
 
-`cursorIndex` only applies when the value contains exactly one number.
+If you add commas while the user types, convert the caret from the raw input to the formatted string. The [Typing screen](https://github.com/bikash1376/torph-native/blob/main/apps/example/src/screens/Typing.tsx) in the example app shows how.
 
-### Springs
+### Wrapping
 
-Pass spring parameters as `ease` for physics-based motion. A spring keeps its velocity when a morph is interrupted, which suits values that change quickly.
-
-```tsx
-<TextMorph ease={{ stiffness: 220, damping: 24 }}>{status}</TextMorph>
-```
-
-| Parameter | Default | |
-| --- | --- | --- |
-| `stiffness` | `100` | Spring stiffness |
-| `damping` | `10` | Damping coefficient |
-| `mass` | `1` | Mass |
-| `precision` | `0.001` | How close to rest counts as settled |
-
-A spring sets its own duration. `torph-reactnative` works out how long the spring takes to settle and times the fades from that.
-
-### Custom easing
-
-Any Reanimated easing works:
+By default, lines break only at `\n`. Add `wrap` to break at spaces so the text fits the width available, like a normal `Text`. Words that move to another line morph there.
 
 ```tsx
-import { Easing } from "react-native-reanimated";
-
-<TextMorph duration={260} ease={Easing.bezier(0.23, 1, 0.32, 1)}>
-  {label}
+<TextMorph wrap style={{ fontSize: 22 }}>
+  {expanded ? "Your recovery phrase is the key to your wallet" : "Recovery phrase"}
 </TextMorph>
 ```
 
-The default is torph's curve, `Easing.bezier(0.19, 1, 0.22, 1)`, over 400 ms: a strong ease-out, so motion starts the moment the value changes. For labels that change many times in a session, consider dropping `duration` to 200–300 ms.
-
-### Multi-line text
-
-Newlines in the value start new lines, and words keep their identity when they move from one line to another. `textAlign` (`left`, `center` or `right`) aligns each line within the widest one.
-
-```tsx
-<TextMorph style={{ fontSize: 20, textAlign: "center" }}>
-  {"Swap approved\nWaiting for confirmation"}
-</TextMorph>
-```
-
-Like torph, the text never wraps on its own: a line break exists only where the value contains one.
+`wrap` stretches the component across its parent to measure the width, so use it inside column layouts. `textAlign` (`left`, `center` or `right`) aligns each line.
 
 ### Shrink to fit
 
-Amount fields shrink as the number grows. Set `maxWidth` and the whole value scales down to fit. The scale animates along with the morph.
+`maxWidth` scales the whole value down to fit, as amount fields do when a number grows. Use a number of pixels, or `"auto"` for the width available. The scale animates with the morph.
 
 ```tsx
-<TextMorph maxWidth={320} style={{ fontSize: 60, fontWeight: "700" }}>
+<TextMorph maxWidth="auto" style={{ fontSize: 64, fontWeight: "700" }}>
   {`$${amount}`}
 </TextMorph>
 ```
 
+### Springs and easing
+
+```tsx
+<TextMorph ease={{ stiffness: 220, damping: 22 }}>{status}</TextMorph>                 // spring
+<TextMorph duration={260} ease={Easing.bezier(0.23, 1, 0.32, 1)}>{label}</TextMorph>   // curve
+```
+
+The default is a strong ease-out, `Easing.bezier(0.19, 1, 0.22, 1)`, over 400 ms. A spring keeps its velocity when interrupted and sets its own duration.
+
 ### Emoji
 
-Emoji morph like any other character, and multi-code-point emoji stay whole: families (👨‍👩‍👧), skin tones (👍🏽), flags (🇮🇳) and keycaps (1️⃣). This holds even on engines without `Intl.Segmenter`, because `torph-reactnative` has its own grapheme splitter.
+Emoji morph like any other character. Multi-part emoji stay whole, including families (👨‍👩‍👧), skin tones (👍🏽), flags (🇮🇳) and keycaps (1️⃣). This holds even on engines without `Intl.Segmenter`.
 
 ```tsx
 <TextMorph>{tooMuch ? "Still not enough ETH 😳" : "Not enough ETH"}</TextMorph>
 ```
 
+### Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `children` | `string \| number` | — | The value to show. |
+| `style` | `StyleProp<TextStyle>` | — | Text appearance; `textAlign` aligns the lines. |
+| `containerStyle` | `StyleProp<ViewStyle>` | — | The box around the glyphs. Don't set its width or height. |
+| `wrap` | `boolean` | `false` | Break lines at spaces to fit the available width. |
+| `maxWidth` | `number \| "auto"` | — | Shrink to fit this width, or the available width. |
+| `duration` | `number` | `400` | Morph length in ms. Ignored for springs. |
+| `ease` | Reanimated easing or `{ stiffness, damping, mass }` | strong ease-out | Timing curve or spring. |
+| `numbers` | `boolean` | `true` | Morph numbers by place value. |
+| `locale` | `string` | `"en"` | Segmentation and number formatting. |
+| `decimals` | `number` | — | Decimal places when `children` is a number. |
+| `cursorIndex` | `number` | — | Caret position; morphs follow the caret. |
+| `scale` | `boolean` | `true` | Shrink leaving characters to 0.95 as they fade. |
+| `animateSize` | `boolean` | `true` | Animate the box's size so neighbours don't jump. |
+| `disabled` | `boolean` | `false` | Plain text, no animation. |
+| `respectReducedMotion` | `boolean` | `true` | Crossfade instead of moving when the OS asks for reduced motion. |
+| `onAnimationStart` / `onAnimationComplete` / `onAnimationCancel` | `() => void` | — | Lifecycle callbacks. |
+| `allowFontScaling`, `maxFontSizeMultiplier`, `testID` | | | Passed through. |
+
 ---
 
-## Icons and emoji
+## IconSwap
 
-### `IconSwap`
-
-Swaps one small view for another. The outgoing one scales down and fades while the incoming one springs up from 0.6. It works with icons from any library, emoji, or images, and a swap can be interrupted.
+Swaps one small view for another. The old view shrinks and fades while the new one springs in. It works with icons from any library, emoji and images, and a swap can be interrupted.
 
 ```tsx
 import { IconSwap } from "torph-reactnative";
@@ -210,248 +216,257 @@ import { IconSwap } from "torph-reactnative";
 </IconSwap>
 ```
 
-`variant`: `scale` (default) · `slide-up` · `slide-down` · `rotate`. `duration` sets the outgoing fade (default 180 ms).
+| Prop | Default | |
+| --- | --- | --- |
+| `swapKey` | — | Identity of the current child. Changing it plays the swap. |
+| `variant` | `"scale"` | `scale`, `slide-up`, `slide-down` or `rotate` |
+| `duration` | `180` | Length of the outgoing fade in ms. |
 
-### `IconMorph`: any icon into any icon
+---
+
+## IconMorph
+
+Morphs any icon into any other. Give it SVG path data from any icon set (Lucide, Feather, Tabler, Heroicons or your own); changing `d` redraws the old icon into the new one.
+
+```tsx
+import { IconMorph } from "torph-reactnative/icons";
+
+const MENU = ["M4 6h16", "M4 12h16", "M4 18h16"];
+const CLOSE = ["M6 6l12 12", "M18 6L6 18"];
+
+<IconMorph d={open ? CLOSE : MENU} size={28} />
+```
+
+It's written from scratch, with no flubber or GSAP:
+
+1. Every path is parsed (all SVG commands, arcs included) and flattened into points.
+2. Each stroke is resampled to the same number of points.
+3. Strokes are paired by shape. The pairing tries each stroke forwards, backwards and from every starting point, and keeps the set of pairs that moves least overall.
+4. A stroke with no partner shrinks into, or grows out of, its own centre while fading, so nothing is left behind as a dot.
+5. Each stroke is blended on the UI thread with its own opacity.
+
+Icons drawn with `<circle>`, `<rect>` or `<line>` convert with `circlePath`, `rectPath` and `linePath`:
 
 ```tsx
 import { IconMorph, circlePath, rectPath } from "torph-reactnative/icons";
 
-<IconMorph d={open ? ["M6 6l12 12", "M18 6L6 18"] : ["M4 6h16", "M4 12h16", "M4 18h16"]} />
+const PAUSE = [rectPath(6.5, 5, 4, 14, 1.2), rectPath(13.5, 5, 4, 14, 1.2)];
+const PLAY = ["M8 5.5v13l10.5-6.5z"];
+
+<IconMorph d={playing ? PAUSE : PLAY} />
 ```
-
-Give it SVG path data (one `d` string or one per `<path>`) from any icon set: Lucide, Feather, Tabler, Heroicons or your own. Changing `d` morphs the drawing into the new icon. It's written from scratch, with no flubber.
-
-1. Every path is parsed (all SVG commands, including arcs) and flattened.
-2. Each stroke is resampled to the same number of points.
-3. Strokes are paired by shape: each pairing tries the stroke forwards, backwards and (for closed loops) from every starting point, and the set of pairings that moves the least overall wins. This is exact for icons with up to 7 strokes.
-4. Strokes without a partner shrink into, or grow out of, their own centre while fading, so they are gone before they could collapse into a stray dot.
-5. Closed shapes repeat their first point at the end instead of using `Z`, so they never snap shut halfway.
-6. Each stroke is its own path, blended on the UI thread with its own opacity.
-
-Icons drawn with `<circle>`, `<rect>` or `<line>` convert to paths with `circlePath`, `rectPath` and `linePath`.
 
 | Prop | Default | |
 | --- | --- | --- |
-| `d` | — | Path data: a string or an array of strings |
-| `size` / `viewBox` | `24` / `24` | Pixel size and the icon set's grid |
+| `d` | — | Path data: one string or one per `<path>`. |
+| `size` / `viewBox` | `24` / `24` | Pixel size and the icon set's grid. |
 | `color`, `strokeWidth` | `#111`, `2` | |
-| `filled` | `false` | Fill instead of stroke, for solid icon sets |
-| `samples` | `40` | Points per stroke |
-| `spring` / `duration` | spring | Uses a timing curve when `duration` is set |
+| `filled` | `false` | Fill instead of stroke, for solid icon sets. |
+| `samples` | `40` | Points per stroke. Raise it for large, curvy icons. |
+| `spring` / `duration` | spring | A fixed `duration` uses a timing curve instead. |
 
-### Animated icons
+---
 
-Ten state-driven icons drawn with `react-native-svg`. Each animates when its prop changes:
+## Animated icons
+
+Ten icons drawn with `react-native-svg`. Each one animates when its prop changes, and they all take `size`, `color`, `strokeWidth` and `style`.
+
+```tsx
+import { LockIcon, ProgressCheck, StarIcon } from "torph-reactnative/icons";
+
+<LockIcon locked={!approved} />
+<ProgressCheck state={pending ? "loading" : "success"} badge />
+<StarIcon filled={starred} />
+```
 
 | Icon | Prop | Animation |
 | --- | --- | --- |
-| `LockIcon` | `locked` | The shackle lifts and frees its left leg |
-| `ProgressCheck` | `state: "idle" \| "loading" \| "success"`, `badge` | A spinner completes its ring and draws a check. With `badge`, the circle fills like a verified badge |
-| `CheckCircle` | `checked` | The circle fills, the check draws in and the icon pops |
-| `ChevronIcon` | `direction` | Rotates to point up, down, left or right |
-| `PlusCloseIcon` | `open` | + turns 45° into × |
-| `StarIcon`, `HeartIcon` | `filled` | Fills with a springy pop |
-| `TrashIcon` | `open` | The lid tips open about its left end |
-| `SendIcon` | `sendKey` | Flies out to the top right and glides back in |
-| `CopyIcon` | `copied` | The copy glyph swaps to a green check |
-
-They all take `size`, `color`, `strokeWidth` and `style`.
+| `LockIcon` | `locked` | The shackle lifts and frees one leg. |
+| `ProgressCheck` | `state: "idle" \| "loading" \| "success"`, `badge` | A spinner completes its ring and draws a check. With `badge`, it fills like a verified badge. |
+| `CheckCircle` | `checked` | Fills, draws a check and pops. |
+| `ChevronIcon` | `direction` | Turns to point up, down, left or right. |
+| `PlusCloseIcon` | `open` | + turns into ×. |
+| `StarIcon`, `HeartIcon` | `filled` | Fills with a springy pop. |
+| `TrashIcon` | `open` | The lid tips open. |
+| `SendIcon` | `sendKey` | Flies out and glides back in. |
+| `CopyIcon` | `copied` | Swaps to a green check. |
 
 ---
 
-## Surfaces
+## MorphBox
 
-### `MorphTray`
-
-A tray whose height follows its content. Change `step` and the tray springs to the new content's height while the old content fades out over the new, so one tray becomes the next instead of a new sheet stacking on top.
+A button that grows into the tray it opens, then shrinks back into the button. Size, corner radius and colour move together on one spring, and the contents crossfade.
 
 ```tsx
-<MorphTray step={step} style={styles.tray} contentStyle={{ padding: 20 }}>
-  {step === "options" ? <Options onPick={setStep} /> : <PrivateKey onBack={() => setStep("options")} />}
-</MorphTray>
-```
+import { MorphBox } from "torph-reactnative";
 
-### `MorphBox`
-
-A "Continue" button that grows into the tray it opens, then shrinks back into the button on Cancel. Size, corner radius and colour all move on one spring, and the contents crossfade.
-
-```tsx
 <MorphBox
   expanded={open}
   collapsedWidth={width}
-  collapsedHeight={52}
+  collapsedHeight={54}
   collapsedColor="#fff"
   expandedColor="#1C1C1E"
-  collapsed={<Pressable onPress={() => setOpen(true)}><Text>Continue</Text></Pressable>}
+  collapsed={
+    <Pressable onPress={() => setOpen(true)}>
+      <Text>Continue</Text>
+    </Pressable>
+  }
 >
-  <AllowAccess onCancel={() => setOpen(false)} />
+  <ApprovalTray onCancel={() => setOpen(false)} />
 </MorphBox>
 ```
 
-When expanded, the box fills the width available to its wrapper (`style`). Place the wrapper where the box should grow from, for example at the bottom of a `justifyContent: "flex-end"` screen.
+When expanded, the box fills the width of its wrapper (`style`) and grows to the height of its content. Put it where it should grow from, for example at the bottom of a screen laid out with `justifyContent: "flex-end"`.
 
-### `StepIndicator`
-
-```tsx
-<StepIndicator count={5} index={step} />
-```
-
-The current step's dash stretches and takes the accent colour.
+| Prop | Default | |
+| --- | --- | --- |
+| `expanded` | — | Show the tray instead of the button. |
+| `collapsed` | — | The button's content. |
+| `children` | — | The tray's content; its height is measured. |
+| `collapsedWidth`, `collapsedHeight` | — | The button's size. |
+| `collapsedRadius` / `expandedRadius` | pill / `32` | Corner radius in each state. |
+| `collapsedColor` / `expandedColor` | `#fff` / `#fff` | Background in each state. |
+| `spring` | firm, no bounce | Reanimated spring config. |
 
 ---
 
-## Data and layout
+## MorphTray
 
-### `LineChartMorph`
+A tray whose height follows its content. When `step` changes, the tray springs to the new content's height while the old content fades out over the new. One tray turns into the next instead of a second sheet stacking on top.
+
+```tsx
+import { MorphTray } from "torph-reactnative";
+
+<MorphTray step={step} style={styles.tray} contentStyle={{ padding: 20 }}>
+  {step === "options" ? <Options onPick={setStep} /> : <Details onBack={() => setStep("options")} />}
+</MorphTray>
+```
+
+---
+
+## MorphList and MorphItem
+
+Items spring to their new place when a list or grid reorders, regroups or reflows. Added and removed items fade in and out. Give each item a stable `key`.
+
+```tsx
+import { MorphList, MorphItem } from "torph-reactnative";
+
+<MorphList>
+  {tokens.map((t) => (
+    <MorphItem key={t.id} bounce>
+      <TokenRow token={t} />
+    </MorphItem>
+  ))}
+</MorphList>
+```
+
+With `bounce`, items overshoot and settle. Inside a `MorphList`, that bounce is clamped to the list's own box, so a row moving from the top to the bottom still bounces without swinging past the edge. Without `bounce`, items glide straight to their place.
+
+---
+
+## LineChartMorph
 
 ```tsx
 import { LineChartMorph } from "torph-reactnative/chart";
 
-<LineChartMorph data={series[range]} width={340} height={150} color={up ? "#16A34A" : "#FF3B30"} />
+<LineChartMorph data={series[range]} width={340} height={200} color={up ? "#16A34A" : "#FF3B30"} />
 ```
 
-Both series are resampled to the same number of points (`samples`, default 72), so any dataset can reshape into any other. The morph uses a strong ease-in-out over 520 ms, because the line moves in place on screen. A dot marks the latest value. Switching range mid-morph carries on from the line as it is on screen.
+Both datasets are resampled to the same number of points, so any series can reshape into any other. Switching ranges mid-morph carries on from the line as it is on screen. A dot marks the latest value.
 
-### `MorphItem`
+| Prop | Default | |
+| --- | --- | --- |
+| `data` | — | The values. Any length. |
+| `width`, `height` | — | Size in pixels. |
+| `color`, `strokeWidth` | `#0A84FF`, `2.5` | |
+| `samples` | `72` | Points the line is resampled to. |
+| `showDot` | `true` | Dot on the last value. |
+| `duration`, `easing` | `520`, strong ease-in-out | |
+
+---
+
+## StepIndicator
 
 ```tsx
-{tokens.map((t) => (
-  <MorphItem key={t.id}>
-    <TokenRow token={t} />
-  </MorphItem>
-))}
+import { StepIndicator } from "torph-reactnative";
+
+<StepIndicator count={5} index={step} />
 ```
 
-When the list reorders, regroups or reflows, each item springs to its new place. Added and removed items fade in and out. Give each item a stable `key`.
+The current step's dash stretches and takes the accent colour. The example app uses it as its page dots.
 
 ---
 
-## API
+## Accessibility and reduced motion
 
-### `<TextMorph>`
-
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `children` | `string \| number` | — | The value to show. |
-| `style` | `StyleProp<TextStyle>` | — | Text appearance. `textAlign` sets how lines align. |
-| `containerStyle` | `StyleProp<ViewStyle>` | — | Style for the box around the glyphs. Don't set `width` or `height` here: the box sizes itself to the text. |
-| `duration` | `number` | `400` | Morph length in ms. Ignored when `ease` is a spring. |
-| `ease` | `EasingFunction \| EasingFunctionFactory \| SpringParams` | `Easing.bezier(0.19, 1, 0.22, 1)` | A Reanimated easing or spring parameters. |
-| `locale` | `string` | `"en"` | Used for segmentation and number formatting. |
-| `decimals` | `number` | — | Number of decimal places when `children` is a number. |
-| `numbers` | `boolean` | `true` | Morph numbers by place value. |
-| `cursorIndex` | `number` | — | Caret position. Matches characters by position instead of place value. |
-| `maxWidth` | `number` | — | Scale the whole value down to fit this width. The scale animates with the morph. |
-| `scale` | `boolean` | `true` | Shrink exiting characters to 0.95 as they fade. |
-| `animateSize` | `boolean` | `true` | Animate the box's width and height so surrounding layout doesn't jump. |
-| `disabled` | `boolean` | `false` | Render plain text with no animation. |
-| `respectReducedMotion` | `boolean` | `true` | Crossfade instead of morphing when the OS asks for reduced motion. |
-| `allowFontScaling` | `boolean` | — | Passed to every `Text`. |
-| `maxFontSizeMultiplier` | `number` | — | Passed to every `Text`. |
-| `onAnimationStart` | `() => void` | — | Called when a morph starts. Not called on the first render. |
-| `onAnimationComplete` | `() => void` | — | Called when a morph finishes. |
-| `onAnimationCancel` | `() => void` | — | Called when a newer value interrupts a running morph. |
-| `testID` | `string` | — | |
-
-### Engine exports
-
-The diff engine is exported too, so you can build another renderer on the same morph logic (for example with Skia or SVG):
-
-```ts
-import { segmentText, diffSegments, planFrame, layoutSegments } from "torph-reactnative";
-
-const before = segmentText("Continue", "en");
-const { segments, splits } = diffSegments(before, "Confirm", "en");
-// Same ID = same glyph: slide it. New ID = enter. Missing ID = exit.
-```
-
-`planFrame` takes the previous frame, the new segments and a function that measures a string's width. For every glyph it returns its phase (`initial`, `persist`, `enter` or `exit`), its start and end positions, and its group if it moves with a run. It has no dependency on React Native.
+- `TextMorph` exposes the full value as its accessibility label and hides the individual glyphs from screen readers.
+- When the OS asks for reduced motion, `TextMorph` crossfades instead of moving (turn this off with `respectReducedMotion={false}`), and `IconSwap` switches to a plain fade.
+- The icons are hidden from screen readers. Label the control that contains them.
 
 ---
 
-## How it works
+## How TextMorph works
 
-Each change goes through four stages.
+1. **Segment.** The value is split into words, or into characters for a single word, and each segment gets a stable ID. Numbers are split by place value.
+2. **Diff.** This step is the engine from [torph](https://github.com/lochie/torph). A longest-common-subsequence pass keeps words that survive the change, including words that moved. Similar words are then matched letter by letter, so shared letters keep their IDs.
+3. **Plan.** Each distinct string is measured once, in the same frame it first appears, and every glyph's position is calculated, including line wrapping. Nothing has to be measured after it renders and corrected later.
+4. **Animate.** Each glyph is an absolutely positioned `Animated.View` driven by Reanimated values:
+   - glyphs that stay slide to their new place;
+   - new glyphs ride in from their nearest neighbour;
+   - leaving glyphs drift with that neighbour while they fade;
+   - digits roll vertically;
+   - a run of six or more replaced characters shrinks away as one shape.
 
-1. **Segment.** The value is split into segments: graphemes for a single word, words for anything with spaces, and characters for numbers. Each segment gets a stable ID.
-2. **Diff** (copied from torph). A longest-common-subsequence pass pairs up words that survive the change, including words that moved. Unmatched words that share at least 40% of their characters are paired, and that pair is cut into characters so the shared letters keep their IDs. Numbers are matched by place value instead.
-3. **Plan** (new in this port). Glyph widths are measured once, with an invisible `Text` per distinct string, and cached by font. Every segment's position is then calculated, so nothing is measured after rendering.
-   - **Survivors** move from their old position to their new one.
-   - **New glyphs** start at the old position of their nearest survivor and travel with it.
-   - **Exiting glyphs** drift with their nearest survivor while they fade.
-   - **Runs of six or more replaced glyphs** shrink toward the run's centre and fade as one shape, instead of sliding past each other.
-4. **Animate.** Each glyph is an absolutely positioned `Animated.View` with shared values for position, slide, scale and opacity. A glyph that mounts starts with its initial values already set, so the first frame is correct. Glyphs that are already mounted retarget from their current values.
-
-| | Movement | Opacity |
-| --- | --- | --- |
-| Survivor | old → new position | — |
-| Entering character | from its nearest survivor's old position, scale 0.95 → 1 | 0 → 1 over 50% of the duration, after a 25% delay |
-| Exiting character | drifts with its nearest survivor, scale → 0.95 | → 0 over 25% |
-| Entering digit / symbol | slides in from above (digits) or below (symbols) | 0 → 1 over 25% |
-| Exiting digit / symbol | slides down one line | → 0 over 45% |
-| Replaced run (≥ 6) | scale 0.8 ↔ 1 about the run's centre | 35% in / 45% out |
-
-The timing shares are torph's. Under reduced motion, nothing moves: the old value fades out over the new one across half the duration.
-
----
-
-## Differences from torph
-
-| | torph (web) | torph-reactnative |
-| --- | --- | --- |
-| Rendering | DOM spans plus FLIP: measure, change, measure again, invert | Calculated positions plus shared values; nothing is measured after rendering |
-| Springs | Converted to a CSS `linear()` easing | Real Reanimated springs that keep their velocity when interrupted |
-| Reduced motion | Turns animation off | Crossfades without movement |
-| Splitting characters | UTF-16 units in some paths | Code points everywhere, so emoji stay whole even without `Intl.Segmenter` |
-| Framework bindings | React, Vue, Svelte, vanilla | React Native |
+The diff engine is exported (`segmentText`, `diffSegments`, `planFrame`) if you want to build another renderer on it.
 
 ---
 
 ## Limitations
 
-- **No automatic wrapping.** Lines break only at `\n`, as in torph. Constrain the width of long values yourself.
-- **Kerning and ligatures.** Each character is its own `Text`, so kerning between them is lost (torph has the same trade-off). The difference is invisible in most UI fonts. Script fonts and scripts that join their letters, such as Arabic, won't render correctly while split into characters.
-- **Left-to-right only.** Right-to-left layout isn't handled yet.
-- **Reduced motion is read once.** Reanimated's `useReducedMotion` reads the setting when the component mounts, so a change made while the app is running takes effect on the next mount.
-- **`Intl.Segmenter`.** Where Hermes doesn't provide it, `torph-reactnative` uses its own grapheme splitter. That covers emoji sequences, combining accents and Devanagari signs, but not every Unicode rule. For other complex scripts, add a polyfill such as `@formatjs/intl-segmenter`.
-- **`IconMorph` draws polylines.** Each stroke becomes 40 points by default, so very large icons with tight curves may need a higher `samples` value.
-- **Not built yet:** moving an element between screens (Family's card and NFT hand-offs). `MorphBox` covers the same-screen version.
-- **The first frame shows plain text.** Before any glyph has been measured, the value renders as a normal `Text` in the same place, then switches to glyphs once the widths are known. Morphing starts from the second value on.
+- Each character is its own `Text`, so kerning between characters is lost (torph has the same trade-off). Scripts that join their letters, such as Arabic, won't render correctly mid-morph, and right-to-left layout isn't handled yet.
+- `wrap` and `maxWidth="auto"` stretch the component across its parent to measure it. In row layouts, pass a number to `maxWidth` instead.
+- `IconMorph` draws polylines, so very large icons with tight curves may need a higher `samples` value. Two very different icons can tangle a little mid-morph.
+- Moving an element from one screen to another isn't covered yet.
 
 ---
 
-## Development
+## Example app
 
-This is a pnpm workspace.
+[`apps/example`](https://github.com/bikash1376/torph-native/tree/main/apps/example) is an Expo app with one component per screen. Swipe sideways to move between them:
 
-```
-apps/example/        Expo SDK 58 gallery recreating the Family Values videos
-packages/
-  torph-reactnative/
-    src/core/        segmentation, diff and graphemes (diff copied from torph)
-    src/plan.ts      text layout and animation planning (pure, unit tested)
-    src/TextMorph.tsx, Glyph.tsx
-    src/IconSwap.tsx, MorphTray.tsx, MorphBox.tsx, MorphItem.tsx, StepIndicator.tsx
-    src/icons/       IconMorph (+ morph.ts path engine) and the animated icons
-    src/chart/       LineChartMorph (+ path.ts helpers)
-  test-cases/        torph's shared test corpus
-```
+| Screen | Shows |
+| --- | --- |
+| Button labels | `TextMorph` and `IconSwap` with `ProgressCheck` |
+| Typing | `cursorIndex`, comma regrouping, `maxWidth="auto"` |
+| Text morph | Every `TextMorph` option: easing, duration, alignment, wrapping |
+| Animated icons | All ten icons |
+| Icon morph | `IconMorph` between ten icons |
+| Button to tray | `MorphBox` with `LockIcon` and `ProgressCheck` |
+| Chart ranges | `LineChartMorph` with a rolling percentage |
+| Reorder | `MorphList` with bouncy `MorphItem`s |
 
 ```sh
+git clone https://github.com/bikash1376/torph-native.git
+cd torph-native
 pnpm install
-pnpm test        # vitest: torph's suite plus the planner, icon-morph, chart, grapheme and Hermes tests
-pnpm typecheck
-pnpm build       # emits lib/
+pnpm --filter torph-reactnative-example start
 ```
 
-To try it, run the demo app: `pnpm install`, then `pnpm --filter torph-reactnative-example start`, and scan the QR code with Expo Go (SDK 58). Metro reads the library's TypeScript source through the `react-native` field, so you don't need to build first.
+Then scan the QR code with Expo Go (SDK 58).
+
+### Developing the library
+
+```sh
+pnpm test        # vitest: torph's diff suite plus planner, wrap, icon-morph, chart and grapheme tests
+pnpm typecheck
+pnpm build       # emits packages/torph-native/lib
+```
 
 ---
 
 ## Credits
 
-The segmentation and diff engine and the test corpus come from [torph](https://github.com/lochie/torph) by [Lochie Axon](https://github.com/lochie), MIT licensed. Its license is included in [LICENSE](./LICENSE).
+The text segmentation and diff engine, and its test corpus, come from [torph](https://github.com/lochie/torph) by [Lochie Axon](https://github.com/lochie), MIT licensed. Its licence is included in [LICENSE](https://github.com/bikash1376/torph-native/blob/main/packages/torph-native/LICENSE).
 
 ## License
 

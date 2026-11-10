@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { IconSwap, StepIndicator, TextMorph } from "torph-reactnative";
 import { ProgressCheck } from "torph-reactnative/icons";
-import { C, Chip, PillButton, Section } from "../ui";
+import { C, Chip, PillButton, Section } from "../../ui";
 
 const STEPS = [
   { title: "Choose Wallet Group", body: "Choose a wallet group to create your new wallet within." },
