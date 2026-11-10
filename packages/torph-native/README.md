@@ -259,7 +259,7 @@ packages/
     src/plan.ts     layout and animation planning (pure, unit tested)
     src/Glyph.tsx   one animated glyph
     src/TextMorph.tsx
-    example/App.tsx drop-in demo screen
+  (apps/example)    Expo SDK 58 demo app using the package from the workspace
   test-cases/       torph's shared test corpus
 ```
 
@@ -270,7 +270,7 @@ pnpm typecheck
 pnpm build       # emits lib/
 ```
 
-To try it in an app, copy `example/App.tsx` into an Expo app that has Reanimated set up and install this package from a local path (`pnpm add ../torph-rn/packages/torph-native`). Metro reads the TypeScript source through the `react-native` field, so you don't need to build first.
+To try it, run the demo app: `pnpm install`, then `pnpm --filter torph-native-example start`, and scan the QR code with Expo Go (SDK 58). Metro reads the library's TypeScript source through the `react-native` field, so you don't need to build first.
 
 ---
 

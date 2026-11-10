@@ -14,5 +14,5 @@ pnpm build
 | Path | |
 | --- | --- |
 | `packages/torph-native` | The library |
-| `packages/torph-native/example/App.tsx` | Drop-in demo screen |
+| `apps/example` | Expo SDK 58 demo app (`pnpm --filter torph-native-example start`) |
 | `packages/test-cases` | torph's shared test corpus, which the ported engine is tested against |
